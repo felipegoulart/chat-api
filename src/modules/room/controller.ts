@@ -15,4 +15,15 @@ export class RoomController {
       ],
     };
   }
+
+  createRoom(request: FastifyRequest, reply: FastifyReply) {
+    return reply.status(201).send({
+      id: "room-id",
+      name: "room-name",
+      description: "room-description",
+      code: "room-code",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
 }
