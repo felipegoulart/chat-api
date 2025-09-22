@@ -8,6 +8,7 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import z from "zod/v4";
+import { roomRoutes } from "./modules/room";
 
 export const createServer = (): FastifyInstance => {
   const app = fastify({
@@ -24,12 +25,12 @@ export const createServer = (): FastifyInstance => {
     {
       schema: {
         response: {
-          200: z.literal("hello world"),
+          200: z.literal("The Pirate King I'll be!"),
         },
       },
     },
     () => {
-      return "hello world" as const;
+      return "The Pirate King I'll be!" as const;
     },
   );
 
@@ -46,6 +47,8 @@ export const createServer = (): FastifyInstance => {
       return "ok" as const;
     },
   );
+
+  app.register(roomRoutes, { prefix: "/rooms" });
 
   app.setErrorHandler((error, request, reply) => {
     if (hasZodFastifySchemaValidationErrors(error)) {
