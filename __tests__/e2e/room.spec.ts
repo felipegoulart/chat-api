@@ -45,4 +45,35 @@ describe("E2E -> Server", () => {
       ]),
     });
   });
+
+  it("should return a room by code", async () => {
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: defaultRoom,
+    });
+
+    const {
+      data: { code },
+    } = await createResponse.json();
+
+    const response = await app.inject({ method: "GET", url: `/rooms/${code}` });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual(
+      expect.objectContaining({
+        message: "OK",
+        count: 1,
+        total: 1,
+        data: {
+          name: defaultRoom.name,
+          description: defaultRoom.description,
+          code,
+          id: expect.any(String),
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
+      }),
+    );
+  });
 });

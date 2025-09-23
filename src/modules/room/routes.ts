@@ -13,6 +13,13 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app: FastifyInstance) =>
   });
 
   app.route({
+    method: "GET",
+    url: "/:code",
+    schema: {},
+    handler: roomController.getByCode.bind(roomController),
+  });
+
+  app.route({
     method: "POST",
     url: "/",
     schema: {},

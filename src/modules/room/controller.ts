@@ -41,6 +41,23 @@ export class RoomController {
     }
   }
 
+  async getByCode(request: FastifyRequest<{ Params: { code: string } }>, reply: FastifyReply) {
+    const { code } = request.params;
+
+    const room = await Room.findOne({ code });
+
+    if (!room) {
+      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+    }
+
+    return reply.status(status.OK).send({
+      message: status[200],
+      count: 1,
+      total: 1,
+      data: toRoomResponse(room),
+    });
+  }
+
   async createRoom(request: FastifyRequest<{ Body: createRoom }>, reply: FastifyReply) {
     const { name, description } = request.body;
 
