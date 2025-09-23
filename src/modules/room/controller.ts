@@ -67,7 +67,9 @@ export class RoomController {
 
     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    const room = await Room.create({ name, description, code });
+    const room = new Room({ name, description, code });
+
+    await room.save();
 
     return reply.status(status.CREATED).send({
       message: status[201],
