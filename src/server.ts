@@ -10,6 +10,7 @@ import {
 } from "fastify-type-provider-zod";
 import z from "zod/v4";
 import { roomRoutes } from "./modules/room/index.js";
+import { userRoutes } from "./modules/user/index.js";
 
 export const createServer = (): FastifyInstance => {
   const app = fastify({
@@ -50,8 +51,6 @@ export const createServer = (): FastifyInstance => {
     },
   );
 
-  app.register(roomRoutes, { prefix: "/rooms" });
-
   app.setErrorHandler((error, request, reply) => {
     if (hasZodFastifySchemaValidationErrors(error)) {
       return reply.code(400).send({
@@ -81,6 +80,9 @@ export const createServer = (): FastifyInstance => {
     request.log.error(error);
     reply.status(500).send({ error: "Internal server error" });
   });
+
+  app.register(roomRoutes, { prefix: "/rooms" });
+  app.register(userRoutes, { prefix: "/users" });
 
   return app;
 };
