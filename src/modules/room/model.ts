@@ -23,6 +23,4 @@ const roomSchema = new Schema<IRoom>(
   { timestamps: true },
 );
 
-roomSchema.index({ name: "text", description: "text", code: "text" });
-
 export const Room = model<IRoom>("Room", roomSchema);
