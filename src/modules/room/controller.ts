@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { status } from "http-status";
 import z from "zod";
 import { toRoomResponse } from "./mappers";
 import { Room } from "./model";
@@ -28,13 +29,16 @@ export const createRoomResponseSchema = z.object({
 export type RoomResponse = z.infer<typeof createRoomResponseSchema>;
 
 export class RoomController {
-  async listRooms(request: FastifyRequest, reply: FastifyReply) {
+  async list(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const results = await Room.find();
+      const results = await Room.find().sort({ createdAt: -1 });
 
-      return {
-        results: results.map(toRoomResponse),
-      };
+      return reply.code(status.OK).send({
+        count: results.length, // TODO: implement pagination
+        data: results.map(toRoomResponse),
+        message: status[200],
+        total: results.length,
+      });
     } catch (error) {
       console.log(error);
       return reply.status(500).send({ message: "Internal server error" });
@@ -58,13 +62,18 @@ export class RoomController {
     });
   }
 
-  async createRoom(request: FastifyRequest<{ Body: createRoom }>, reply: FastifyReply) {
+  async create(request: FastifyRequest<{ Body: createRoom }>, reply: FastifyReply) {
     const { name, description } = request.body;
 
     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
     const room = await Room.create({ name, description, code });
 
-    return reply.status(201).send(toRoomResponse(room));
+    return reply.status(status.CREATED).send({
+      message: status[201],
+      count: 1,
+      total: 1,
+      data: toRoomResponse(room),
+    });
   }
 }

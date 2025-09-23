@@ -9,7 +9,7 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app: FastifyInstance) =>
     method: "GET",
     url: "/",
     schema: {},
-    handler: roomController.listRooms.bind(roomController),
+    handler: roomController.list.bind(roomController),
   });
 
   app.route({
@@ -23,6 +23,6 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app: FastifyInstance) =>
     method: "POST",
     url: "/",
     schema: {},
-    handler: roomController.createRoom.bind(roomController),
+    handler: roomController.create.bind(roomController),
   });
 };
