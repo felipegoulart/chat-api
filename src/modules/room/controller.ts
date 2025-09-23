@@ -1,8 +1,11 @@
+import { randomUUID } from "node:crypto";
+import type { WebSocket } from "@fastify/websocket";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { status } from "http-status";
 import z from "zod";
-import { toRoomResponse } from "./mappers";
-import { Room } from "./model";
+import { redis } from "@/infra/cache/redis.js";
+import { toRoomResponse } from "./mappers.js";
+import { Room } from "./model.js";
 
 const searchRoomsQuerySchema = z.object({
   q: z.string().min(1).max(50).optional(),
@@ -76,6 +79,16 @@ export class RoomController {
       count: 1,
       total: 1,
       data: toRoomResponse(room),
+    });
+  }
+
+  async connect(socket: WebSocket, request: FastifyRequest<{ Params: { code: string } }>) {
+    const { code } = request.params;
+
+    socket.on("message", async (message: unknown) => {
+      await redis.SADD(`chat:online:room_${code}`, randomUUID());
+      console.log("Received message:", message?.toString());
+      socket.send(`${message}`);
     });
   }
 }

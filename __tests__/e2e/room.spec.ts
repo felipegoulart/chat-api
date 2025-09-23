@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { beforeAll, describe, expect, it } from "vitest";
+import type { RawData } from "ws";
 import { createServer } from "../../src/server";
 
 describe("E2E -> Server", () => {
@@ -89,5 +90,31 @@ describe("E2E -> Server", () => {
         },
       }),
     );
+  });
+
+  it("should connect to a room by code", async () => {
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: defaultRoom,
+    });
+
+    const {
+      data: { code },
+    } = await createResponse.json();
+
+    const ws = await app.injectWS(`/rooms/${code}`);
+    let resolve: (value: unknown) => void;
+    const promise = new Promise((r) => {
+      resolve = r;
+    });
+
+    ws.on("message", async (message: RawData) => {
+      resolve(message.toString());
+    });
+
+    ws.send("Hi there!");
+
+    expect(await promise).toBe("Hi there!");
   });
 });

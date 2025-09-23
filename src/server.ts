@@ -1,4 +1,5 @@
 import cors from "@fastify/cors";
+import websocket from "@fastify/websocket";
 import fastify, { type FastifyInstance } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -8,17 +9,18 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import z from "zod/v4";
-import { roomRoutes } from "./modules/room";
+import { roomRoutes } from "./modules/room/index.js";
 
 export const createServer = (): FastifyInstance => {
   const app = fastify({
     logger: process.env.NODE_ENV !== "test" ? { level: "debug" } : false,
   }).withTypeProvider<ZodTypeProvider>();
 
+  app.register(cors);
+  app.register(websocket);
+
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
-
-  app.register(cors);
 
   app.get(
     "/",

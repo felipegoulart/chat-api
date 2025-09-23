@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import type { FastifyPluginAsyncZod, ZodTypeProvider } from "fastify-type-provider-zod";
-import { RoomController } from "./controller";
+import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { RoomController } from "./controller.js";
 
 export const roomRoutes: FastifyPluginAsyncZod = async (app: FastifyInstance) => {
   const roomController = new RoomController();
@@ -16,6 +16,7 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app: FastifyInstance) =>
     method: "GET",
     url: "/:code",
     schema: {},
+    wsHandler: roomController.connect.bind(roomController),
     handler: roomController.getByCode.bind(roomController),
   });
 
