@@ -1,6 +1,6 @@
 import { connect } from "mongoose";
-import { env } from "./env";
-import { createServer } from "./server";
+import { env } from "./env.js";
+import { createServer } from "./server.js";
 
 const app = createServer();
 

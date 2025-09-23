@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { RawData } from "ws";
 import { createServer } from "../../src/server";
 
-describe("E2E -> Server", () => {
+describe("E2E -> Room", () => {
   let app: FastifyInstance;
   const defaultRoom = { name: "Room 1", description: "This is room 1" };
 

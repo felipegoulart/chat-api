@@ -1,1 +1,1 @@
-export { roomRoutes } from "./routes";
+export { roomRoutes } from "./routes.js";

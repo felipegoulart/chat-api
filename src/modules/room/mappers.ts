@@ -1,5 +1,5 @@
 import type { HydratedDocument } from "mongoose";
-import type { IRoom } from "./model";
+import type { IRoom } from "./model.js";
 
 export function toRoomResponse(room: HydratedDocument<IRoom>) {
   return {

@@ -1,5 +1,4 @@
 import { model, Schema, type Types } from "mongoose";
-import { codec } from "zod";
 
 export interface IRoom {
   _id: Types.ObjectId;
