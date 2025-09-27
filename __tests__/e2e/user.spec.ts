@@ -8,8 +8,8 @@ describe("E2E -> User", () => {
   const defaultUser = {
     username: "UserTest",
     email: "user@test.com",
-    password: "123test",
-    confirmPassword: "123test",
+    password: "123@Test",
+    confirm: "123@Test",
   };
 
   beforeAll(async () => {
@@ -23,6 +23,11 @@ describe("E2E -> User", () => {
     expect(response.status).toBe(201);
     expect(response.body).toEqual({
       message: "Created",
+      data: expect.objectContaining({
+        id: expect.any(String),
+        username: defaultUser.username,
+        email: defaultUser.email,
+      }),
     });
   });
 });
