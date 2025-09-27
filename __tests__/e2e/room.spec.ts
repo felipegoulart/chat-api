@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { RawData } from "ws";
 import { redis } from "../../src/infra/cache/redis";
 import { Room } from "../../src/modules/room/model";
+import { User } from "../../src/modules/user";
 import { createServer } from "../../src/server";
 
 describe("E2E -> Room", () => {
@@ -13,7 +14,9 @@ describe("E2E -> Room", () => {
   beforeAll(async () => {
     app = createServer();
     await app.ready();
+  });
 
+  beforeEach(async () => {
     const createUser = await app.inject({
       method: "POST",
       url: "/users",
@@ -32,7 +35,8 @@ describe("E2E -> Room", () => {
   });
 
   afterEach(async () => {
-    await Room.deleteMany({});
+    await Room.deleteMany();
+    await User.deleteMany();
     await redis.flushAll();
   });
 
