@@ -61,14 +61,68 @@ describe("E2E -> Room", () => {
     });
   });
 
-  it("should return a rooms list", async () => {
-    await app.inject({
+  it("should allow an user to create a many rooms", async () => {
+    const firstRoomResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: {
+        adminId: adminId,
+        ...defaultRoom,
+      },
+    });
+
+    expect(firstRoomResponse.statusCode).toBe(201);
+    expect(firstRoomResponse.json()).toEqual({
+      message: "Created",
+      count: 1,
+      total: 1,
+      data: expect.objectContaining({
+        name: "Room 1",
+        description: "This is room 1",
+      }),
+    });
+
+    const secondRoomResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: {
+        adminId: adminId,
+        name: "Room 2",
+        description: "This is room 2",
+      },
+    });
+
+    expect(secondRoomResponse.statusCode).toBe(201);
+    expect(secondRoomResponse.json()).toEqual({
+      message: "Created",
+      count: 1,
+      total: 1,
+      data: expect.objectContaining({
+        name: "Room 2",
+        description: "This is room 2",
+      }),
+    });
+  });
+
+  it("should return a rooms list user is member of", async () => {
+    const createRoomResponse = await app.inject({
       method: "POST",
       url: "/rooms",
       payload: { ...defaultRoom, adminId },
     });
 
-    const response = await app.inject({ method: "GET", url: "/rooms" });
+    await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: { ...defaultRoom, adminId: "655a72771d918f02061872b2" }, // another user
+    });
+
+    const {
+      data: { id: roomId },
+    } = await createRoomResponse.json();
+
+    // TODO: create membership and test only rooms user is member of
+    const response = await app.inject({ method: "GET", url: "/rooms", headers: { user: adminId } });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
@@ -77,7 +131,7 @@ describe("E2E -> Room", () => {
       total: 1,
       data: expect.arrayContaining([
         {
-          id: expect.any(String),
+          id: roomId,
           name: expect.any(String),
           description: expect.any(String),
           code: expect.any(String),

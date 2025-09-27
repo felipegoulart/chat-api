@@ -33,9 +33,9 @@ export const createRoomResponseSchema = z.object({
 export type RoomResponse = z.infer<typeof createRoomResponseSchema>;
 
 export class RoomController {
-  async list(request: FastifyRequest, reply: FastifyReply) {
+  async list(request: FastifyRequest<{ Headers: { user: string } }>, reply: FastifyReply) {
     try {
-      const results = await Room.find().sort({ createdAt: -1 });
+      const results = await Room.find({ members: request.headers.user }).sort({ createdAt: -1 });
 
       return reply.code(status.OK).send({
         count: results.length, // TODO: implement pagination
@@ -68,11 +68,10 @@ export class RoomController {
 
   async create(request: FastifyRequest<{ Body: createRoom }>, reply: FastifyReply) {
     const { name, description, adminId } = request.body;
-    console.log(request.body);
 
     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    const room = new Room({ name, description, code, adminId: adminId });
+    const room = new Room({ name, description, code, adminId: adminId, members: [adminId] });
 
     await room.save();
 
