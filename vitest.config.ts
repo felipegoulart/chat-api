@@ -8,6 +8,9 @@ export default defineConfig({
     },
   },
   test: {
+    poolOptions: {
+      forks: { execArgv: ["--env-file=.env"] },
+    },
     environment: "node",
     setupFiles: ["./__tests__/e2e/helpers/setup.ts"],
   },
