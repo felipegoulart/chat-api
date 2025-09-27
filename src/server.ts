@@ -53,10 +53,10 @@ export const createServer = (): FastifyInstance => {
 
   app.setErrorHandler((error, request, reply) => {
     if (hasZodFastifySchemaValidationErrors(error)) {
-      return reply.code(400).send({
+      return reply.code(422).send({
         error: "Response Validation Error",
         message: "Request doesn't match the schema",
-        statusCode: 400,
+        statusCode: 422,
         details: {
           issues: error.validation,
           method: request.method,
