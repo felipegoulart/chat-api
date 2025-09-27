@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { UserController } from "./controller.js";
+import { createUserBodySchema, UserController } from "./controller.js";
 
 const userController = new UserController();
 
@@ -7,7 +7,9 @@ export const userRoutes = async (app: FastifyInstance) => {
   app.route({
     method: "POST",
     url: "/",
-    schema: {},
+    schema: {
+      body: createUserBodySchema,
+    },
     handler: userController.create.bind(userController),
   });
 };
