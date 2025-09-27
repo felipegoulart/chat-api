@@ -177,6 +177,137 @@ describe("E2E -> Room", () => {
     );
   });
 
+  it("should allow an user to join a room by code", async () => {
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: { ...defaultRoom, adminId },
+    });
+
+    const {
+      data: { code },
+    } = await createResponse.json();
+
+    const anotherUser = await app.inject({
+      method: "POST",
+      url: "/users",
+      payload: {
+        username: "Another",
+        email: "another@test.com",
+        password: "123@Test",
+        confirm: "123@Test",
+      },
+    });
+
+    const {
+      data: { id: userId },
+    } = await anotherUser.json();
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/rooms/${code}/join`,
+      headers: { user: userId },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      message: `User ${userId} joined room`,
+    });
+  });
+
+  it("should not allow an user to join a room twice", async () => {
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: { ...defaultRoom, adminId },
+    });
+
+    const {
+      data: { code },
+    } = await createResponse.json();
+
+    const anotherUser = await app.inject({
+      method: "POST",
+      url: "/users",
+      payload: {
+        username: "Another",
+        email: "another@test.com",
+        password: "123@Test",
+        confirm: "123@Test",
+      },
+    });
+
+    const {
+      data: { id: userId },
+    } = await anotherUser.json();
+
+    await app.inject({
+      method: "POST",
+      url: `/rooms/${code}/join`,
+      headers: { user: userId },
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/rooms/${code}/join`,
+      headers: { user: userId },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      message: "Conflict",
+    });
+  });
+
+  it("should return 404 when try to join into room that does not exist", async () => {
+    const response = await app.inject({ method: "POST", url: `/rooms/NOTEXIST/join` });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      message: "Not Found",
+    });
+  });
+
+  it("should allow an user to leave a room by code", async () => {
+    const createRoomResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: { ...defaultRoom, adminId },
+    });
+
+    const {
+      data: { code },
+    } = await createRoomResponse.json();
+
+    const anotherUserResponse = await app.inject({
+      method: "POST",
+      url: "/users",
+      payload: {
+        username: "Another",
+        email: "another@test.com",
+        password: "123@Test",
+        confirm: "123@Test",
+      },
+    });
+
+    const {
+      data: { id: userId },
+    } = await anotherUserResponse.json();
+
+    await app.inject({
+      method: "POST",
+      url: `/rooms/${code}/join`,
+      headers: { user: userId },
+    });
+
+    const response = await app.inject({ method: "POST", url: `/rooms/${code}/leave`, headers: { user: userId } });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      message: "OK",
+    });
+  });
+
   it("should connect to a room by code", async () => {
     const createResponse = await app.inject({
       method: "POST",
