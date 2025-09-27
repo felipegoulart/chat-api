@@ -1,25 +1,23 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { connect } from "mongoose";
+import { connect, type Mongoose } from "mongoose";
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { redis } from "../../../src/infra/cache/redis.js";
-import { Room } from "../../../src/modules/room/model";
 
-const mongod = await MongoMemoryServer.create();
+let mongoServer: MongoMemoryServer;
+let connection: Mongoose;
 
-const uri = mongod.getUri();
-
-beforeAll(() => {
+beforeAll(async () => {
   console.log("Up the database... 🚀");
-  connect(uri);
+  mongoServer = await MongoMemoryServer.create();
+  connection = await connect(mongoServer.getUri());
   console.log("Database is up! ✨");
 });
 
 afterEach(async () => {
-  await Room.deleteMany({});
   await redis.flushAll();
 });
 
-afterAll(() => {
-  mongod.stop();
-  console.log("Database stopped! ✨");
+afterAll(async () => {
+  await connection.connection.close();
+  await mongoServer.stop();
 });
