@@ -2,8 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { WebSocket } from "@fastify/websocket";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { status } from "http-status";
+import { Types } from "mongoose";
 import z from "zod";
 import { redis } from "@/infra/cache/redis.js";
+import { User } from "../user/model.js";
 import { toRoomResponse } from "./mappers.js";
 import { Room } from "./model.js";
 
@@ -75,12 +77,52 @@ export class RoomController {
 
     await room.save();
 
+    await User.updateOne({ _id: adminId }, { $push: { rooms: room._id } });
+
     return reply.status(status.CREATED).send({
       message: status[201],
       count: 1,
       total: 1,
       data: toRoomResponse(room),
     });
+  }
+
+  async join(request: FastifyRequest<{ Params: { code: string }; Headers: { user: string } }>, reply: FastifyReply) {
+    const { code } = request.params;
+    const { user } = request.headers;
+
+    const userId = new Types.ObjectId(user);
+
+    const room = await Room.findOne({ code });
+    if (!room) {
+      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+    }
+
+    if (room.members.includes(userId)) {
+      return reply.status(status.CONFLICT).send({ message: status[409] });
+    }
+
+    room.members.push(userId);
+    await room.save();
+
+    await User.updateOne({ _id: userId }, { $push: { rooms: room._id } });
+
+    return reply.status(status.OK).send({ message: `User ${userId.toString()} joined room` });
+  }
+
+  async leave(request: FastifyRequest<{ Params: { code: string }; Headers: { user: string } }>, reply: FastifyReply) {
+    const { code } = request.params;
+    const { user } = request.headers;
+    const userId = new Types.ObjectId(user);
+
+    const room = await Room.findOneAndUpdate({ code }, { $pull: { members: userId } });
+    if (!room) {
+      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+    }
+
+    await User.updateOne({ _id: userId }, { $pull: { rooms: room._id } });
+
+    return reply.status(status.OK).send({ message: status[200] });
   }
 
   async connect(socket: WebSocket, request: FastifyRequest<{ Params: { code: string } }>) {

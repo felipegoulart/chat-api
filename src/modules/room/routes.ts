@@ -26,4 +26,18 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app: FastifyInstance) =>
     schema: {},
     handler: roomController.create.bind(roomController),
   });
+
+  app.route({
+    method: "POST",
+    url: "/:code/join",
+    schema: {},
+    handler: roomController.join.bind(roomController),
+  });
+
+  app.route({
+    method: "POST",
+    url: "/:code/leave",
+    schema: {},
+    handler: roomController.leave.bind(roomController),
+  });
 };
