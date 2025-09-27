@@ -14,6 +14,7 @@ const searchRoomsQuerySchema = z.object({
 export type SearchRoomsQuery = z.infer<typeof searchRoomsQuerySchema>;
 
 export const createRoomBodySchema = z.object({
+  adminId: z.string(),
   name: z.string().min(3).max(50),
   description: z.string().min(3).max(255).optional(),
 });
@@ -66,11 +67,12 @@ export class RoomController {
   }
 
   async create(request: FastifyRequest<{ Body: createRoom }>, reply: FastifyReply) {
-    const { name, description } = request.body;
+    const { name, description, adminId } = request.body;
+    console.log(request.body);
 
     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    const room = new Room({ name, description, code });
+    const room = new Room({ name, description, code, adminId: adminId });
 
     await room.save();
 
