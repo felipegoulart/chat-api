@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { MessageEvent, RawData } from "ws";
 import { redis } from "../../src/infra/cache/redis";
 import { Room } from "../../src/modules/room/model";
@@ -8,36 +8,40 @@ import { createServer } from "../../src/server";
 
 describe("E2E -> Room", () => {
   let app: FastifyInstance;
-  let adminId: string;
+
+  const userOne = new User({
+    username: "UserOne",
+    email: "userone@test.com",
+    password: "123@Test",
+  });
+  const userTwo = new User({
+    username: "UserTwo",
+    email: "usertwo@test.com",
+    password: "123@Test",
+  });
+  let userOneId: string;
+  let userTwoId: string;
+
   const defaultRoom = { name: "Room 1", description: "This is room 1" };
 
   beforeAll(async () => {
     app = createServer();
     await app.ready();
-  });
 
-  beforeEach(async () => {
-    const createUser = await app.inject({
-      method: "POST",
-      url: "/users",
-      payload: {
-        username: "admin",
-        email: "admin@test.com",
-        password: "123@Test",
-        confirm: "123@Test",
-      },
-    });
-
-    const {
-      data: { id },
-    } = await createUser.json();
-    adminId = id;
+    await userOne.save();
+    await userTwo.save();
+    userOneId = userOne._id.toString();
+    userTwoId = userTwo._id.toString();
   });
 
   afterEach(async () => {
     await Room.deleteMany();
-    await User.deleteMany();
     await redis.flushAll();
+  });
+
+  afterAll(async () => {
+    await app.close();
+    User.deleteMany();
   });
 
   it("should create a room", async () => {
@@ -45,7 +49,7 @@ describe("E2E -> Room", () => {
       method: "POST",
       url: "/rooms",
       payload: {
-        adminId: adminId,
+        adminId: userOne._id.toString(),
         ...defaultRoom,
       },
     });
@@ -70,7 +74,7 @@ describe("E2E -> Room", () => {
       method: "POST",
       url: "/rooms",
       payload: {
-        adminId: adminId,
+        adminId: userOneId,
         ...defaultRoom,
       },
     });
@@ -90,7 +94,7 @@ describe("E2E -> Room", () => {
       method: "POST",
       url: "/rooms",
       payload: {
-        adminId: adminId,
+        adminId: userOneId,
         name: "Room 2",
         description: "This is room 2",
       },
@@ -112,13 +116,13 @@ describe("E2E -> Room", () => {
     const createRoomResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId },
+      payload: { ...defaultRoom, adminId: userOneId },
     });
 
     await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: "655a72771d918f02061872b2" }, // another user
+      payload: { ...defaultRoom, adminId: userTwoId },
     });
 
     const {
@@ -126,7 +130,7 @@ describe("E2E -> Room", () => {
     } = await createRoomResponse.json();
 
     // TODO: create membership and test only rooms user is member of
-    const response = await app.inject({ method: "GET", url: "/rooms", headers: { user: adminId } });
+    const response = await app.inject({ method: "GET", url: "/rooms", headers: { user: userOneId } });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
@@ -150,7 +154,7 @@ describe("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId },
+      payload: { ...defaultRoom, adminId: userOneId },
     });
 
     const {
@@ -181,37 +185,22 @@ describe("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId },
+      payload: { ...defaultRoom, adminId: userOneId },
     });
 
     const {
       data: { code },
     } = await createResponse.json();
 
-    const anotherUser = await app.inject({
-      method: "POST",
-      url: "/users",
-      payload: {
-        username: "Another",
-        email: "another@test.com",
-        password: "123@Test",
-        confirm: "123@Test",
-      },
-    });
-
-    const {
-      data: { id: userId },
-    } = await anotherUser.json();
-
     const response = await app.inject({
       method: "POST",
       url: `/rooms/${code}/join`,
-      headers: { user: userId },
+      headers: { user: userTwoId },
     });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      message: `User ${userId} joined room`,
+      message: `User ${userTwoId} joined room`,
     });
   });
 
@@ -219,38 +208,23 @@ describe("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId },
+      payload: { ...defaultRoom, adminId: userOneId },
     });
 
     const {
       data: { code },
     } = await createResponse.json();
 
-    const anotherUser = await app.inject({
-      method: "POST",
-      url: "/users",
-      payload: {
-        username: "Another",
-        email: "another@test.com",
-        password: "123@Test",
-        confirm: "123@Test",
-      },
-    });
-
-    const {
-      data: { id: userId },
-    } = await anotherUser.json();
-
     await app.inject({
       method: "POST",
       url: `/rooms/${code}/join`,
-      headers: { user: userId },
+      headers: { user: userTwoId },
     });
 
     const response = await app.inject({
       method: "POST",
       url: `/rooms/${code}/join`,
-      headers: { user: userId },
+      headers: { user: userTwoId },
     });
 
     expect(response.statusCode).toBe(409);
@@ -272,35 +246,24 @@ describe("E2E -> Room", () => {
     const createRoomResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId },
+      payload: { ...defaultRoom, adminId: userOneId },
     });
 
     const {
       data: { code },
     } = await createRoomResponse.json();
 
-    const anotherUserResponse = await app.inject({
-      method: "POST",
-      url: "/users",
-      payload: {
-        username: "Another",
-        email: "another@test.com",
-        password: "123@Test",
-        confirm: "123@Test",
-      },
-    });
-
-    const {
-      data: { id: userId },
-    } = await anotherUserResponse.json();
-
     await app.inject({
       method: "POST",
       url: `/rooms/${code}/join`,
-      headers: { user: userId },
+      headers: { user: userTwoId },
     });
 
-    const response = await app.inject({ method: "POST", url: `/rooms/${code}/leave`, headers: { user: userId } });
+    const response = await app.inject({
+      method: "POST",
+      url: `/rooms/${code}/leave`,
+      headers: { user: userTwoId },
+    });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
@@ -312,7 +275,7 @@ describe("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId },
+      payload: { ...defaultRoom, adminId: userOneId },
     });
 
     const {
@@ -338,26 +301,15 @@ describe("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId },
-    });
-
-    const anotherUser = await app.inject({
-      method: "POST",
-      url: "/users",
-      payload: {
-        username: "Another",
-        email: "another@test.com",
-        password: "123@Test",
-        confirm: "123@Test",
-      },
+      payload: { ...defaultRoom, adminId: userOneId },
     });
 
     const {
       data: { code },
     } = await createResponse.json();
 
-    const firstUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: adminId } });
-    const secondUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: anotherUser.json().data.id } });
+    const firstUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userOneId } });
+    const secondUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userTwoId } });
 
     const firstUserJoinRoom = new Promise((resolve) => {
       firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
@@ -380,7 +332,7 @@ describe("E2E -> Room", () => {
     expect(await secondUserJoinRoom).toStrictEqual({ type: "join", payload: { message: "Joined room" } });
     expect(await firstUserReceivedMessageOnSecondUserJoinRoom).toStrictEqual({
       type: "join",
-      payload: { message: `User ${anotherUser.json().data.id} joined the room` },
+      payload: { message: `User ${userTwoId} joined the room` },
     });
   });
 });
