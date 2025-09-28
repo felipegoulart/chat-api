@@ -311,26 +311,26 @@ describe("E2E -> Room", () => {
     const firstUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userOneId } });
     const secondUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userTwoId } });
 
-    const firstUserJoinRoom = new Promise((resolve) => {
+    const firstUserJoinRoomMessagePromise = new Promise((resolve) => {
       firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
     });
 
     firstUserWS.send(JSON.stringify({ type: "join", payload: {} }));
 
-    expect(await firstUserJoinRoom).toStrictEqual({ type: "join", payload: { message: "Joined room" } });
+    expect(await firstUserJoinRoomMessagePromise).toStrictEqual({ type: "join", payload: { message: "Joined room" } });
 
-    const secondUserJoinRoom = new Promise((resolve) => {
+    const secondUserJoinRoomMessagePromise = new Promise((resolve) => {
       secondUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
     });
 
-    const firstUserReceivedMessageOnSecondUserJoinRoom = new Promise((resolve) => {
+    const firstUserReceivedMessageOnSecondUserJoinRoomPromise = new Promise((resolve) => {
       firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
     });
 
     secondUserWS.send(JSON.stringify({ type: "join", payload: {} }));
 
-    expect(await secondUserJoinRoom).toStrictEqual({ type: "join", payload: { message: "Joined room" } });
-    expect(await firstUserReceivedMessageOnSecondUserJoinRoom).toStrictEqual({
+    expect(await secondUserJoinRoomMessagePromise).toStrictEqual({ type: "join", payload: { message: "Joined room" } });
+    expect(await firstUserReceivedMessageOnSecondUserJoinRoomPromise).toStrictEqual({
       type: "join",
       payload: { message: `User ${userTwoId} joined the room` },
     });
