@@ -125,7 +125,10 @@ export class RoomController {
     return reply.status(status.OK).send({ message: status[200] });
   }
 
-  async connect(socket: WebSocket, request: FastifyRequest<{ Params: { code: string } }>) {
+  async handleConnection(
+    socket: WebSocket,
+    request: FastifyRequest<{ Params: { code: string }; Headers: { user: string } }>,
+  ) {
     const { code } = request.params;
 
     socket.on("message", async (message: unknown) => {

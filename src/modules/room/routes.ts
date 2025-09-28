@@ -16,7 +16,7 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app: FastifyInstance) =>
     method: "GET",
     url: "/:code",
     schema: {},
-    wsHandler: roomController.connect.bind(roomController),
+    wsHandler: roomController.handleConnection.bind(roomController),
     handler: roomController.getByCode.bind(roomController),
   });
 
