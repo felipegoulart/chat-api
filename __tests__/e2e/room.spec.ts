@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { RawData } from "ws";
+import type { MessageEvent, RawData } from "ws";
 import { redis } from "../../src/infra/cache/redis";
 import { Room } from "../../src/modules/room/model";
 import { User } from "../../src/modules/user";
@@ -326,11 +326,61 @@ describe("E2E -> Room", () => {
     });
 
     ws.on("message", async (message: RawData) => {
-      resolve(message.toString());
+      resolve(JSON.parse(message.toString()));
     });
 
-    ws.send("Hi there!");
+    ws.send(JSON.stringify({ type: "join", payload: {} }));
 
-    expect(await promise).toBe("Hi there!");
+    expect(await promise).toStrictEqual({ type: "join", payload: { message: "Joined room" } });
+  });
+
+  it("should send a message to others users in a room when a new user joins", async () => {
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: { ...defaultRoom, adminId },
+    });
+
+    const anotherUser = await app.inject({
+      method: "POST",
+      url: "/users",
+      payload: {
+        username: "Another",
+        email: "another@test.com",
+        password: "123@Test",
+        confirm: "123@Test",
+      },
+    });
+
+    const {
+      data: { code },
+    } = await createResponse.json();
+
+    const firstUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: adminId } });
+    const secondUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: anotherUser.json().data.id } });
+
+    const firstUserJoinRoom = new Promise((resolve) => {
+      firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
+    });
+
+    firstUserWS.send(JSON.stringify({ type: "join", payload: {} }));
+
+    expect(await firstUserJoinRoom).toStrictEqual({ type: "join", payload: { message: "Joined room" } });
+
+    const secondUserJoinRoom = new Promise((resolve) => {
+      secondUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
+    });
+
+    const firstUserReceivedMessageOnSecondUserJoinRoom = new Promise((resolve) => {
+      firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
+    });
+
+    secondUserWS.send(JSON.stringify({ type: "join", payload: {} }));
+
+    expect(await secondUserJoinRoom).toStrictEqual({ type: "join", payload: { message: "Joined room" } });
+    expect(await firstUserReceivedMessageOnSecondUserJoinRoom).toStrictEqual({
+      type: "join",
+      payload: { message: `User ${anotherUser.json().data.id} joined the room` },
+    });
   });
 });

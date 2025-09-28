@@ -3,8 +3,10 @@ import type { WebSocket } from "@fastify/websocket";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { status } from "http-status";
 import { Types } from "mongoose";
+import type { RawData } from "ws";
 import z from "zod";
 import { redis } from "@/infra/cache/redis.js";
+import { SessionHandler } from "@/utils/session-handler.js";
 import { User } from "../user/model.js";
 import { toRoomResponse } from "./mappers.js";
 import { Room } from "./model.js";
@@ -33,6 +35,8 @@ export const createRoomResponseSchema = z.object({
 });
 
 export type RoomResponse = z.infer<typeof createRoomResponseSchema>;
+
+const sessionHandler = new SessionHandler();
 
 export class RoomController {
   async list(request: FastifyRequest<{ Headers: { user: string } }>, reply: FastifyReply) {
@@ -130,11 +134,38 @@ export class RoomController {
     request: FastifyRequest<{ Params: { code: string }; Headers: { user: string } }>,
   ) {
     const { code } = request.params;
+    const { user } = request.headers;
 
-    socket.on("message", async (message: unknown) => {
-      await redis.SADD(`chat:online:room_${code}`, randomUUID());
-      console.log("Received message:", message?.toString());
-      socket.send(`${message}`);
+    socket.on("message", async (message: RawData) => {
+      const { type, payload } = JSON.parse(message.toString());
+
+      switch (type) {
+        case "join": {
+          const session = sessionHandler.initSession({ userId: user, room: code, socket });
+          const sessionsRoom = sessionHandler.getSessionsByRoom(code);
+
+          await redis.SADD(`chat:online:room_${code}`, session.id);
+
+          sessionsRoom.forEach((session) => {
+            if (session.userId === user) return;
+
+            session.socket.send(JSON.stringify({ type: "join", payload: { message: `User ${user} joined the room` } }));
+          });
+
+          socket.send(
+            JSON.stringify({
+              type: "join",
+              payload: {
+                message: "Joined room",
+              },
+            }),
+          );
+
+          break;
+        }
+        default:
+          throw new Error("Invalid message type");
+      }
     });
   }
 }
