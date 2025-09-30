@@ -200,8 +200,8 @@ export class RoomController {
 
             session.socket.send(
               JSON.stringify({
-                type: "message",
-                payload: { payloadMessage },
+                type: "send_message",
+                payload: payloadMessage,
               }),
             );
           });
