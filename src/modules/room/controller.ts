@@ -150,14 +150,22 @@ export class RoomController {
           sessionsRoom.forEach((session) => {
             if (session.userId === user) return;
 
-            session.socket.send(JSON.stringify({ type: "join", payload: { message: `User ${user} joined the room` } }));
+            session.socket.send(
+              JSON.stringify({ type: "connect_room", payload: { message: `User ${user} joined the room` } }),
+            );
           });
+
+          const oldMessages = await redis.LRANGE(`chat:history:room_${code}`, 0, -1);
 
           socket.send(
             JSON.stringify({
               type: "join",
               payload: {
                 message: "Joined room",
+                data: oldMessages.map((message) => {
+                  const { sender, content, createdAt } = JSON.parse(message);
+                  return { sender, content, createdAt };
+                }),
               },
             }),
           );
@@ -185,19 +193,26 @@ export class RoomController {
 
           await message.save();
 
+          const payloadMessage = { sender: user, content: message.content, createdAt: message.createdAt };
+
           sessionsRoom.forEach((session) => {
             if (session.userId === user) return;
 
             session.socket.send(
               JSON.stringify({
                 type: "message",
-                payload: {
-                  sender: user,
-                  message: payload.message,
-                },
+                payload: { payloadMessage },
               }),
             );
           });
+
+          const redisListName = `chat:history:room_${code}`;
+
+          await redis.LPUSH(redisListName, JSON.stringify(payloadMessage));
+
+          if ((await redis.LLEN(redisListName)) >= 100) {
+            await redis.LTRIM(redisListName, 0, 99);
+          }
 
           socket.send(JSON.stringify({ type: "message_sended", payload: { messageId: message._id.toString() } }));
           break;
