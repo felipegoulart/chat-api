@@ -39,7 +39,7 @@ export class SessionHandler {
     return this.connections.values().find((session) => session.userId === user);
   }
 
-  public removeSessionId(sessionId: string) {
+  public removeSessionById(sessionId: string) {
     this.connections.delete(sessionId);
   }
 }
