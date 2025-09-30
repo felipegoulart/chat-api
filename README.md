@@ -7,7 +7,7 @@ That app is API for Web Chat based on rooms with One Piece theme. This is a pers
 - [X] A User can be a member of multiple Rooms.
 - [X] A Room can have many members, but it must have only one Admin.
 - [ ] Messages can only be sent and viewed by Users who are members of the corresponding Room.
-- [ ] All messages must be associated with a User (the sender) and a Room.
+- [X] All messages must be associated with a User (the sender) and a Room.
 - [ ] The Admin of a Room has special permissions to manage its members.
 
 ## Functional Requirements
@@ -22,14 +22,14 @@ That app is API for Web Chat based on rooms with One Piece theme. This is a pers
 
 - [X] FR4: The system must allow a user to create a new chat room. The creator of the room is automatically assigned as its Admin.
 - [X] FR5: The system must display a list of all rooms a user is a member of.
-- [ ] FR6: The system must allow a user to join a public room.
-- [ ] FR7: The system must allow a user to leave a room they are a member of.
+- [X] FR6: The system must allow a user to join a public room.
+- [X] FR7: The system must allow a user to leave a room they are a member of.
 
 ### Messaging and Real-Time Chat
 
-- [ ] FR8: The system must allow a user to send text messages within a room.
-- [ ] FR9: The system must display new messages in real-time to all members of a room.
-- [ ] FR10: The system must display the message history for a given room.
+- [X] FR8: The system must allow a user to send text messages within a room.
+- [X] FR9: The system must display new messages in real-time to all members of a room.
+- [X] FR10: The system must display the message history for a given room.
 
 ### Admin Functionality
 
