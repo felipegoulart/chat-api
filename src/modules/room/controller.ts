@@ -141,7 +141,7 @@ export class RoomController {
       const { type, payload } = JSON.parse(message.toString());
 
       switch (type) {
-        case "join": {
+        case "connect_room": {
           const session = sessionHandler.initSession({ userId: user, room: code, socket });
           const sessionsRoom = sessionHandler.getSessionsByRoom(code);
 
@@ -159,7 +159,7 @@ export class RoomController {
 
           socket.send(
             JSON.stringify({
-              type: "join",
+              type: "connect_room",
               payload: {
                 message: "Joined room",
                 data: oldMessages.map((message) => {
@@ -172,7 +172,7 @@ export class RoomController {
 
           break;
         }
-        case "message": {
+        case "send_message": {
           const session = sessionHandler.getSessionsByUserId(user);
           const sessionsRoom = sessionHandler.getSessionsByRoom(code);
           const room = await Room.findOne({ code });
@@ -217,9 +217,35 @@ export class RoomController {
           socket.send(JSON.stringify({ type: "message_sended", payload: { messageId: message._id.toString() } }));
           break;
         }
+        case "disconnect_room": {
+          const sessions = sessionHandler.getSessionsByRoom(code);
+          const sessionId = `${user}:${code}`;
+
+          sessionHandler.removeSessionById(sessionId);
+          sessions.forEach((session) => {
+            session.socket.send(
+              JSON.stringify({ type: "disconnect_room", payload: { message: `User ${user} left the room` } }),
+            );
+          });
+          await redis.SREM(`chat:online:room_${code}`, sessionId);
+          break;
+        }
         default:
           throw new Error("Invalid message type");
       }
+    });
+
+    socket.on("close", async () => {
+      const sessions = sessionHandler.getSessionsByRoom(code);
+      const sessionId = `${user}:${code}`;
+
+      sessionHandler.removeSessionById(sessionId);
+      sessions.forEach((session) => {
+        session.socket.send(
+          JSON.stringify({ type: "disconnect_room", payload: { message: `User ${user} left the room` } }),
+        );
+      });
+      await redis.SREM(`chat:online:room_${code}`, sessionId);
     });
   }
 }
