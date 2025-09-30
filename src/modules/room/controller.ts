@@ -7,6 +7,7 @@ import type { RawData } from "ws";
 import z from "zod";
 import { redis } from "@/infra/cache/redis.js";
 import { SessionHandler } from "@/utils/session-handler.js";
+import { Message } from "../message/model.js";
 import { User } from "../user/model.js";
 import { toRoomResponse } from "./mappers.js";
 import { Room } from "./model.js";
@@ -161,6 +162,44 @@ export class RoomController {
             }),
           );
 
+          break;
+        }
+        case "message": {
+          const session = sessionHandler.getSessionsByUserId(user);
+          const sessionsRoom = sessionHandler.getSessionsByRoom(code);
+          const room = await Room.findOne({ code });
+
+          if (!room) {
+            throw new Error("Room not found");
+          }
+
+          if (!session) {
+            throw new Error("User not found");
+          }
+
+          const message = new Message({
+            content: payload.message,
+            sender: user,
+            room: room._id,
+          });
+
+          await message.save();
+
+          sessionsRoom.forEach((session) => {
+            if (session.userId === user) return;
+
+            session.socket.send(
+              JSON.stringify({
+                type: "message",
+                payload: {
+                  sender: user,
+                  message: payload.message,
+                },
+              }),
+            );
+          });
+
+          socket.send(JSON.stringify({ type: "message_sended", payload: { messageId: message._id.toString() } }));
           break;
         }
         default:

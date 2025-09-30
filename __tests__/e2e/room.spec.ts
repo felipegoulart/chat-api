@@ -335,4 +335,64 @@ describe("E2E -> Room", () => {
       payload: { message: `User ${userTwoId} joined the room` },
     });
   });
+
+  it("should send a message to others users in a room when a new message is sent", async () => {
+    const createRoomResponse = await app.inject({
+      method: "POST",
+      url: "/rooms",
+      payload: { ...defaultRoom, adminId: userOneId },
+    });
+
+    const {
+      data: { code },
+    } = await createRoomResponse.json();
+
+    await app.inject({
+      method: "POST",
+      url: `/rooms/${code}/join`,
+      headers: { user: userTwoId },
+    });
+
+    const firstUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userOneId } });
+    const secondUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userTwoId } });
+
+    firstUserWS.send(JSON.stringify({ type: "join", payload: {} }));
+    secondUserWS.send(JSON.stringify({ type: "join", payload: {} }));
+
+    const firstUserJoinRoomMessagePromise = new Promise((resolve) => {
+      firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
+    });
+    const secondUserJoinRoomMessagePromise = new Promise((resolve) => {
+      secondUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
+    });
+
+    // It's necessary to be await user join messages
+    expect(await firstUserJoinRoomMessagePromise).toBeTruthy();
+    expect(await secondUserJoinRoomMessagePromise).toBeTruthy();
+
+    firstUserWS.send(JSON.stringify({ type: "message", payload: { message: "Hi there!" } }));
+
+    const firstUserSendMessagePromise = new Promise((resolve) => {
+      firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
+    });
+
+    const secondUserReceivedMessagePromise = new Promise((resolve) => {
+      secondUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
+    });
+
+    expect(await secondUserReceivedMessagePromise).toStrictEqual({
+      type: "message",
+      payload: {
+        sender: userOneId,
+        message: "Hi there!",
+      },
+    });
+
+    expect(await firstUserSendMessagePromise).toStrictEqual({
+      type: "message_sended",
+      payload: {
+        messageId: expect.any(String),
+      },
+    });
+  });
 });
