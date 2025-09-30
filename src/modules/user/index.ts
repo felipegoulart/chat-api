@@ -1,2 +1,2 @@
-export { IUser, User } from "./model.js";
+export { type IUser, User } from "./model.js";
 export { userRoutes } from "./routes.js";
