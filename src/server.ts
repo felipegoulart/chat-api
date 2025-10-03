@@ -11,7 +11,6 @@ import {
 import z from "zod/v4";
 import { authRoutes } from "./modules/auth/index.js";
 import { roomRoutes } from "./modules/room/index.js";
-import { userRoutes } from "./modules/user/index.js";
 
 export const createServer = (): FastifyInstance => {
   const app = fastify({
@@ -84,7 +83,6 @@ export const createServer = (): FastifyInstance => {
 
   app.register(authRoutes, { prefix: "/auth" });
   app.register(roomRoutes, { prefix: "/rooms" });
-  app.register(userRoutes, { prefix: "/users" });
 
   return app;
 };
