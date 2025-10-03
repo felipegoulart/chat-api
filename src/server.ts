@@ -1,4 +1,6 @@
+import cookies from "@fastify/cookie";
 import cors from "@fastify/cors";
+import jwt from "@fastify/jwt";
 import websocket from "@fastify/websocket";
 import fastify, { type FastifyInstance } from "fastify";
 import {
@@ -9,6 +11,7 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import z from "zod/v4";
+import { env } from "./env.js";
 import { authRoutes } from "./modules/auth/index.js";
 import { roomRoutes } from "./modules/room/index.js";
 
@@ -17,7 +20,20 @@ export const createServer = (): FastifyInstance => {
     logger: process.env.NODE_ENV !== "test" ? { level: "debug" } : false,
   }).withTypeProvider<ZodTypeProvider>();
 
-  app.register(cors);
+  app.register(cors, {
+    origin: "*",
+  });
+  app.register(jwt, {
+    secret: env.JWT_SECRET,
+    cookie: {
+      cookieName: "refreshToken",
+      signed: true,
+    },
+    sign: {
+      expiresIn: "7d",
+    },
+  });
+  app.register(cookies);
   app.register(websocket);
 
   app.setValidatorCompiler(validatorCompiler);
