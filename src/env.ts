@@ -1,9 +1,12 @@
 import z from "zod/v4";
 
 const envSchema = z.object({
-  HOST: z.string().default("0.0.0.0"),
-  PORT: z.coerce.number().default(3001),
   DATABASE_URL: z.url(),
+  HOST: z.string().default("0.0.0.0"),
+  JWT_SECRET: z.string(),
+  MAILER_SEND_API_KEY: z.string(),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("production"),
+  PORT: z.coerce.number().default(3001),
   REDIS_URL: z.url(),
 });
 
