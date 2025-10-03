@@ -10,12 +10,12 @@ describe("E2E -> Room", () => {
   let app: FastifyInstance;
 
   const userOne = new User({
-    username: "UserOne",
+    nickname: "UserOne",
     email: "userone@test.com",
     password: "123@Test",
   });
   const userTwo = new User({
-    username: "UserTwo",
+    nickname: "UserTwo",
     email: "usertwo@test.com",
     password: "123@Test",
   });
