@@ -1,7 +1,10 @@
+import crypto from "node:crypto";
 import { hash } from "bcryptjs";
+import dayjs from "dayjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import status from "http-status";
 import z from "zod";
+import { env } from "@/env.js";
 import { MailSender } from "@/utils/mail-sender.js";
 import { User } from "../user/index.js";
 
@@ -35,10 +38,19 @@ export class AuthController {
 
     const hashedPassword = await hash(password, 10);
 
-    await User.create({ nickname, password: hashedPassword, email });
+    const user = new User({ nickname, password: hashedPassword, email });
 
+    const token = crypto.randomUUID();
+
+    user.verified.isVerified = false;
+    user.verified.token = token;
+    user.verified.tokenCreatedAt = new Date();
+
+    await user.save();
+
+    // TODO: Move to async strategy
     const mailSender = new MailSender({
-      email: "MS_vtre0r@test-y7zpl98qz9545vx6.mlsender.net", // TODO: Move it to database
+      email: env.APP_EMAIL_ADDRESS || "",
       name: "Checkpoint App",
     });
 
@@ -47,13 +59,12 @@ export class AuthController {
     mailSender.setSubject("Welcome to Checkpoint!");
     mailSender.setTags(["verify-email"]);
 
-    const hashedToken = await hash(email, 10); // change hash alg
     mailSender.setPersonalization([
       {
         email: email,
         data: {
           name: nickname,
-          verifyLink: `http://localhost:3000/auth/verify?token=${hashedToken}`,
+          verifyLink: `http://localhost:3000/auth/verify?token=${token}`,
         },
       },
     ]);
@@ -61,5 +72,32 @@ export class AuthController {
     mailSender.send();
 
     return reply.status(status.CREATED).send({ message: status[201] });
+  }
+
+  public async verify(request: FastifyRequest<{ Querystring: { token: string } }>, reply: FastifyReply) {
+    const { token } = request.query;
+
+    const user = await User.findOne({ "verified.token": token });
+    if (!user) {
+      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+    }
+
+    if (user.verified.isVerified) {
+      return reply.status(status.CONFLICT).send({ message: status[409] });
+    }
+
+    const isTokenExpired = dayjs(user.verified.tokenCreatedAt).add(24, "hours").isBefore(dayjs());
+    if (isTokenExpired) {
+      return reply.status(status.GONE).send({ message: status[410] });
+    }
+
+    user.verified.token = null;
+    user.verified.tokenCreatedAt = null;
+    user.verified.isVerified = true;
+    user.verified.verifiedAt = new Date();
+
+    await user.save();
+
+    return reply.status(status.OK).send({ message: status[200] });
   }
 }
