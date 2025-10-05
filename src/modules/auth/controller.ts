@@ -41,7 +41,16 @@ export class AuthController {
       return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
     }
 
-    return reply.status(status.OK).send({ message: status[200] });
+    const refreshToken = await reply.jwtSign({ sub: user._id });
+    const accessToken = await reply.jwtSign({ sub: user._id }, { expiresIn: "15m" });
+
+    reply.setCookie("refreshToken", refreshToken, {
+      path: "/",
+      httpOnly: true,
+      expires: dayjs().add(7, "days").toDate(),
+    });
+
+    return reply.status(status.OK).send({ message: status[200], data: { accessToken } });
   }
 
   public async register(request: FastifyRequest<{ Body: CreateUser }>, reply: FastifyReply) {
