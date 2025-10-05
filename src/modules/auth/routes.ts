@@ -15,6 +15,18 @@ export const authRoutes = (app: FastifyInstance) => {
   });
 
   app.route({
+    method: "POST",
+    url: "/login",
+    schema: {
+      body: z.object({
+        email: z.email(),
+        password: z.string(),
+      }),
+    },
+    handler: authController.login.bind(authController),
+  });
+
+  app.route({
     method: "GET",
     url: "/verify",
     schema: {

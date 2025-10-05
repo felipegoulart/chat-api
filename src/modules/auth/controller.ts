@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { hash } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import dayjs from "dayjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import status from "http-status";
@@ -28,6 +28,22 @@ export const createUserBodySchema = z
 export type CreateUser = z.infer<typeof createUserBodySchema>;
 
 export class AuthController {
+  public async login(request: FastifyRequest<{ Body: { email: string; password: string } }>, reply: FastifyReply) {
+    const { email, password } = request.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
+    }
+
+    const isCorrectPassword = await compare(password, user.password);
+    if (!isCorrectPassword) {
+      return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
+    }
+
+    return reply.status(status.OK).send({ message: status[200] });
+  }
+
   public async register(request: FastifyRequest<{ Body: CreateUser }>, reply: FastifyReply) {
     const { nickname, password, email } = request.body;
 
