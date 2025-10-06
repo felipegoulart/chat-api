@@ -55,6 +55,22 @@ export class AuthController {
     return reply.status(status.OK).send({ message: status[200], data: { accessToken } });
   }
 
+  public async logout(request: FastifyRequest, reply: FastifyReply) {
+    const accessToken = request.headers.authorization?.split?.(" ")[1] || "";
+    const refreshToken = request.cookies.refreshToken || "";
+
+    if (accessToken) {
+      redis.set(accessToken, "revoked");
+      redis.expire(accessToken, 60 * 15);
+    }
+    if (refreshToken) {
+      redis.set(refreshToken, "revoked");
+      redis.expire(refreshToken, 60 * 60 * 24 * 7);
+    }
+
+    reply.status(status.OK).send({ message: status[200] });
+  }
+
   public async register(request: FastifyRequest<{ Body: CreateUser }>, reply: FastifyReply) {
     const { nickname, password, email } = request.body;
 

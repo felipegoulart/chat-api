@@ -2,6 +2,7 @@ import jwt from "@fastify/jwt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { env } from "@/env.js";
+import { redis } from "@/infra/cache/redis.js";
 
 const plugin = async (app: FastifyInstance) => {
   app.register(jwt, {
@@ -12,6 +13,17 @@ const plugin = async (app: FastifyInstance) => {
     },
     sign: {
       expiresIn: "15m",
+    },
+    trusted: async (request) => {
+      const refreshToken = request.cookies.refreshToken || "";
+      const accessToken = request.headers.authorization?.split?.(" ")[1] || "";
+
+      if (!refreshToken || !accessToken) return false;
+
+      if (await redis.get(accessToken)) return false;
+      if (await redis.get(refreshToken)) return false;
+
+      return true;
     },
   });
 
