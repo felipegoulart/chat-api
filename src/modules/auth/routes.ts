@@ -28,6 +28,13 @@ export const authRoutes = (app: FastifyInstance) => {
 
   app.route({
     method: "POST",
+    url: "/logout",
+    onRequest: [app.authenticate],
+    handler: authController.logout.bind(authController),
+  });
+
+  app.route({
+    method: "POST",
     url: "/refresh",
     handler: authController.refresh.bind(authController),
   });
