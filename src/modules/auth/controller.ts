@@ -5,7 +5,8 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import status from "http-status";
 import z from "zod";
 import { env } from "@/env.js";
-import { MailSender } from "@/utils/mail-sender.js";
+import { redis } from "@/infra/cache/redis.js";
+import { MailSender } from "@/shared/mail-sender.js";
 import { User } from "../user/index.js";
 
 export const createUserBodySchema = z
@@ -124,5 +125,25 @@ export class AuthController {
     await user.save();
 
     return reply.status(status.OK).send({ message: status[200] });
+  }
+
+  public async refresh(request: FastifyRequest, reply: FastifyReply) {
+    const currentRefreshToken = request.cookies.refreshToken || "";
+
+    await request.jwtDecode({ decode: { complete: true }, verify: { onlyCookie: true } });
+
+    redis.set(currentRefreshToken, "revoked");
+    redis.expire(currentRefreshToken, 60 * 60 * 24 * 7);
+
+    const newRefreshToken = await reply.jwtSign({ sub: request.user });
+    return reply
+      .setCookie("refreshToken", newRefreshToken, {
+        path: "/",
+        httpOnly: true,
+        sameSite: "strict",
+        expires: dayjs().add(7, "days").toDate(),
+      })
+      .status(status.OK)
+      .send({ message: status[200], data: { accessToken: await reply.jwtSign({ sub: request.user }) } });
   }
 }

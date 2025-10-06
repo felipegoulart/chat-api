@@ -27,6 +27,12 @@ export const authRoutes = (app: FastifyInstance) => {
   });
 
   app.route({
+    method: "POST",
+    url: "/refresh",
+    handler: authController.refresh.bind(authController),
+  });
+
+  app.route({
     method: "GET",
     url: "/verify",
     schema: {
