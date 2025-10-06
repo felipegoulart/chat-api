@@ -1,6 +1,5 @@
 import cookies from "@fastify/cookie";
 import cors from "@fastify/cors";
-import jwt from "@fastify/jwt";
 import websocket from "@fastify/websocket";
 import fastify, { type FastifyInstance } from "fastify";
 import {
@@ -10,10 +9,11 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
+import status from "http-status";
 import z from "zod/v4";
-import { env } from "./env.js";
 import { authRoutes } from "./modules/auth/index.js";
 import { roomRoutes } from "./modules/room/index.js";
+import { authPlugin } from "./shared/plugins/auth-plugin.js";
 
 export const createServer = (): FastifyInstance => {
   const app = fastify({
@@ -23,18 +23,9 @@ export const createServer = (): FastifyInstance => {
   app.register(cors, {
     origin: "*",
   });
-  app.register(jwt, {
-    secret: env.JWT_SECRET,
-    cookie: {
-      cookieName: "refreshToken",
-      signed: true,
-    },
-    sign: {
-      expiresIn: "7d",
-    },
-  });
   app.register(cookies);
   app.register(websocket);
+  app.register(authPlugin);
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -93,6 +84,15 @@ export const createServer = (): FastifyInstance => {
         },
       });
     }
+
+    if (error.statusCode === 401) {
+      return reply.status(status.UNAUTHORIZED).send({ error: status[401] });
+    }
+
+    if (error.statusCode === 403) {
+      return reply.status(status.FORBIDDEN).send({ error: status[403] });
+    }
+
     request.log.error(error);
     reply.status(500).send({ error: "Internal server error" });
   });

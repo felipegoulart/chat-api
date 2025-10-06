@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { WebSocket } from "@fastify/websocket";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { status } from "http-status";
@@ -6,7 +5,7 @@ import { Types } from "mongoose";
 import type { RawData } from "ws";
 import z from "zod";
 import { redis } from "@/infra/cache/redis.js";
-import { SessionHandler } from "@/utils/session-handler.js";
+import { SessionHandler } from "@/shared/session-handler.js";
 import { Message } from "../message/model.js";
 import { User } from "../user/model.js";
 import { toRoomResponse } from "./mappers.js";

@@ -5,6 +5,8 @@ import { RoomController } from "./controller.js";
 export const roomRoutes: FastifyPluginAsyncZod = async (app: FastifyInstance) => {
   const roomController = new RoomController();
 
+  app.addHook("onRequest", app.authenticate);
+
   app.route({
     method: "GET",
     url: "/",
