@@ -1,6 +1,6 @@
-# One piece chat
+# Checkpoint Chat
 
-That app is API for Web Chat based on rooms with One Piece theme. This is a personal study app; It's free to fork, enjoy!
+That app is API for Web Chat based on rooms. This is a personal study app; It's free to fork, enjoy!
 
 ## Business Rules
 
@@ -14,8 +14,8 @@ That app is API for Web Chat based on rooms with One Piece theme. This is a pers
 
 ### User Management
 
-- [ ] FR1: The system must allow new users to register an account with a unique username and password.
-- [ ] FR2: The system must allow registered users to log in and log out securely.
+- [X] FR1: The system must allow new users to register an account with a unique username and password.
+- [X] FR2: The system must allow registered users to log in and log out securely.
 - [ ] FR3: The system must allow users to update their profile information.
 
 ### Room Management
