@@ -12,8 +12,8 @@ import {
 import status from "http-status";
 import z from "zod";
 import { env } from "./env.js";
+import { WebSocketHandler } from "./infra/gateway/websocket-handler.js";
 import { authRoutes } from "./modules/auth/index.js";
-import { WebSocketHandler } from "./modules/gateway/websocket-handler.js";
 import { messagePlugin } from "./modules/message/index.js";
 import { roomRoutes } from "./modules/room/index.js";
 import { authPlugin } from "./shared/plugins/auth.js";

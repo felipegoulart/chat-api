@@ -5,9 +5,11 @@ import type { RawData } from "ws";
 
 export class WebSocketHandler {
   private readonly sockets: Map<string, WebSocket> = new Map();
+  private readonly app: FastifyInstance;
   private static instance: WebSocketHandler;
 
-  private constructor(private readonly app: FastifyInstance) {
+  private constructor(app: FastifyInstance) {
+    this.app = app;
     this.subscribe();
   }
 
