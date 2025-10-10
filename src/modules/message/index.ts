@@ -1,1 +1,1 @@
-export { IMessage, Message } from "./model.js";
+export { type IMessage, Message } from "./model.js";
