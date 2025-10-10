@@ -1,22 +1,22 @@
 import { connect } from "mongoose";
 import { env } from "./env.js";
-import { createServer } from "./server.js";
+import { HttpServer } from "./server.js";
 
-const app = createServer();
+const httpServer = new HttpServer();
 
-connect(env.DATABASE_URL)
-  .then(() => {
-    console.log("Connected to database");
-  })
-  .catch((err) => {
-    console.error("Error connecting to database", err);
-    process.exit(1);
-  });
+async function startApp() {
+  const app = await httpServer.createServer();
 
-app.listen({ port: env.PORT, host: env.HOST }, (err, address) => {
-  if (err) {
-    app.log.error(err);
+  try {
+    await connect(env.DATABASE_URL);
+    app.log.info("Database connected");
+
+    await app.listen({ port: env.PORT, host: env.HOST });
+    app.log.info(`App running at the address: ${env.HOST}:${env.PORT}`);
+  } catch (error) {
+    app.log.error(error);
     process.exit(1);
   }
-  app.log.info(`Server listening at ${address}`);
-});
+}
+
+startApp();
