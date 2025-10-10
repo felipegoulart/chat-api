@@ -4,7 +4,6 @@ import { status } from "http-status";
 import { Types } from "mongoose";
 import type { RawData } from "ws";
 import z from "zod";
-import { redis } from "@/infra/cache/redis.js";
 import { SessionHandler } from "@/shared/session-handler.js";
 import { Message } from "../message/model.js";
 import { User } from "../user/model.js";
@@ -144,7 +143,7 @@ export class RoomController {
           const session = sessionHandler.initSession({ userId: user, room: code, socket });
           const sessionsRoom = sessionHandler.getSessionsByRoom(code);
 
-          await redis.SADD(`chat:online:room_${code}`, session.id);
+          await request.redisCache.SADD(`chat:online:room_${code}`, session.id);
 
           sessionsRoom.forEach((session) => {
             if (session.userId === user) return;
@@ -154,7 +153,7 @@ export class RoomController {
             );
           });
 
-          const oldMessages = await redis.LRANGE(`chat:history:room_${code}`, 0, -1);
+          const oldMessages = await request.redisCache.LRANGE(`chat:history:room_${code}`, 0, -1);
 
           socket.send(
             JSON.stringify({
@@ -207,10 +206,10 @@ export class RoomController {
 
           const redisListName = `chat:history:room_${code}`;
 
-          await redis.LPUSH(redisListName, JSON.stringify(payloadMessage));
+          await request.redisCache.LPUSH(redisListName, JSON.stringify(payloadMessage));
 
-          if ((await redis.LLEN(redisListName)) >= 100) {
-            await redis.LTRIM(redisListName, 0, 99);
+          if ((await request.redisCache.LLEN(redisListName)) >= 100) {
+            await request.redisCache.LTRIM(redisListName, 0, 99);
           }
 
           socket.send(JSON.stringify({ type: "message_sended", payload: { messageId: message._id.toString() } }));
@@ -226,7 +225,7 @@ export class RoomController {
               JSON.stringify({ type: "disconnect_room", payload: { message: `User ${user} left the room` } }),
             );
           });
-          await redis.SREM(`chat:online:room_${code}`, sessionId);
+          await request.redisCache.SREM(`chat:online:room_${code}`, sessionId);
           break;
         }
         default:
@@ -244,7 +243,7 @@ export class RoomController {
           JSON.stringify({ type: "disconnect_room", payload: { message: `User ${user} left the room` } }),
         );
       });
-      await redis.SREM(`chat:online:room_${code}`, sessionId);
+      await request.redisCache.SREM(`chat:online:room_${code}`, sessionId);
     });
   }
 }

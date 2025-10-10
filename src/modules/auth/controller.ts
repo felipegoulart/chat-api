@@ -5,7 +5,6 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import status from "http-status";
 import z from "zod";
 import { env } from "@/env.js";
-import { redis } from "@/infra/cache/redis.js";
 import { MailSender } from "@/shared/mail-sender.js";
 import { User } from "../user/index.js";
 
@@ -60,12 +59,12 @@ export class AuthController {
     const refreshToken = request.cookies.refreshToken || "";
 
     if (accessToken) {
-      redis.set(accessToken, "revoked");
-      redis.expire(accessToken, 60 * 15);
+      request.redisCache.set(accessToken, "revoked");
+      request.redisCache.expire(accessToken, 60 * 15);
     }
     if (refreshToken) {
-      redis.set(refreshToken, "revoked");
-      redis.expire(refreshToken, 60 * 60 * 24 * 7);
+      request.redisCache.set(refreshToken, "revoked");
+      request.redisCache.expire(refreshToken, 60 * 60 * 24 * 7);
     }
 
     reply.status(status.OK).send({ message: status[200] });
@@ -149,8 +148,8 @@ export class AuthController {
 
     await request.jwtDecode({ decode: { complete: true }, verify: { onlyCookie: true } });
 
-    redis.set(currentRefreshToken, "revoked");
-    redis.expire(currentRefreshToken, 60 * 60 * 24 * 7);
+    request.redisCache.set(currentRefreshToken, "revoked");
+    request.redisCache.expire(currentRefreshToken, 60 * 60 * 24 * 7);
 
     const newRefreshToken = await reply.jwtSign({ sub: request.user.id }, { expiresIn: "7d" });
     return reply
