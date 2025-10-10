@@ -1,4 +1,5 @@
-import { createClient } from "redis";
-import { env } from "@/env.js";
+import { createClient, type RedisClientOptions, type RedisClientType } from "redis";
 
-export const redis = await createClient({ url: env.REDIS_URL }).connect();
+export const createRedisClient = async (options: RedisClientOptions): Promise<RedisClientType> => {
+  return (await createClient(options).connect()) as RedisClientType;
+};
