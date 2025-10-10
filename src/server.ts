@@ -14,11 +14,12 @@ import z from "zod";
 import { env } from "./env.js";
 import { authRoutes } from "./modules/auth/index.js";
 import { WebSocketHandler } from "./modules/gateway/websocket-handler.js";
+import { messagePlugin } from "./modules/message/index.js";
 import { roomRoutes } from "./modules/room/index.js";
-import { authPlugin } from "./shared/plugins/auth-plugin.js";
-import { pubSubPlugin } from "./shared/plugins/pub-sub-plugin.js";
+import { authPlugin } from "./shared/plugins/auth.js";
+import { redisPlugin } from "./shared/plugins/redis.js";
 
-const websocketGateway = WebSocketHandler.getInstance();
+let websocketGateway: WebSocketHandler;
 
 export class HttpServer {
   private readonly app: FastifyInstance;
@@ -37,7 +38,7 @@ export class HttpServer {
     return this.app;
   }
 
-  private async bootstrap() {
+  private async registerPlugins() {
     this.app.register(cors, {
       origin: "*",
     });
@@ -46,7 +47,14 @@ export class HttpServer {
     this.app.register(websocket);
     this.app.register(authPlugin);
 
-    await this.app.register(pubSubPlugin);
+    await this.app.register(redisPlugin);
+    await this.app.register(messagePlugin);
+  }
+
+  private async bootstrap() {
+    await this.registerPlugins();
+
+    websocketGateway = WebSocketHandler.getInstance(this.app);
 
     this.app.setValidatorCompiler(validatorCompiler);
     this.app.setSerializerCompiler(serializerCompiler);
