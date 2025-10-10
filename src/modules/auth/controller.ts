@@ -42,8 +42,8 @@ export class AuthController {
       return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
     }
 
-    const refreshToken = await reply.jwtSign({ sub: user._id });
-    const accessToken = await reply.jwtSign({ sub: user._id }, { expiresIn: "7d" });
+    const refreshToken = await reply.jwtSign({ sub: user._id.toString() }, { expiresIn: "7d" });
+    const accessToken = await reply.jwtSign({ sub: user._id.toString() });
 
     reply.setCookie("refreshToken", refreshToken, {
       path: "/",
@@ -152,7 +152,7 @@ export class AuthController {
     redis.set(currentRefreshToken, "revoked");
     redis.expire(currentRefreshToken, 60 * 60 * 24 * 7);
 
-    const newRefreshToken = await reply.jwtSign({ sub: request.user }, { expiresIn: "7d" });
+    const newRefreshToken = await reply.jwtSign({ sub: request.user.id }, { expiresIn: "7d" });
     return reply
       .setCookie("refreshToken", newRefreshToken, {
         path: "/",
@@ -161,6 +161,6 @@ export class AuthController {
         expires: dayjs().add(7, "days").toDate(),
       })
       .status(status.OK)
-      .send({ message: status[200], data: { accessToken: await reply.jwtSign({ sub: request.user }) } });
+      .send({ message: status[200], data: { accessToken: await reply.jwtSign({ sub: request.user.id }) } });
   }
 }
