@@ -1,7 +1,7 @@
 import z from "zod/v4";
 
 const envSchema = z.object({
-  APP_EMAIL_ADDRESS: z.email().optional(), // TODO: It should be changed to Database source
+  APP_EMAIL_ADDRESS: z.email(), // TODO: It should be changed to Database source
   DATABASE_URL: z.url(),
   HOST: z.string().default("0.0.0.0"),
   JWT_SECRET: z.string(),
