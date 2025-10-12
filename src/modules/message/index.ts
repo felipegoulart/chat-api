@@ -1,1 +1,1 @@
-export { type IMessage, Message } from "./model.js";
+export { type Message as IMessage, MessageModel as Message } from "./infrastructure/model.js";
