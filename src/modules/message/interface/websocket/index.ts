@@ -10,5 +10,5 @@ export const messageWebsocket = async (app: FastifyInstance) => {
 
   await handler.subscribe();
 
-  app.get("/ws", { websocket: true }, handler.connectionHandler.bind(handler));
+  app.get("/", { websocket: true }, handler.connectionHandler.bind(handler));
 };

@@ -19,6 +19,8 @@ import status from "http-status";
 import z from "zod";
 import { authRoutes } from "./modules/auth/index.js";
 import { chatChannelRoutes } from "./modules/chat-channel/index.js";
+import { messageHTTPRoutes } from "./modules/message/interface/http/routes.js";
+import { messageWebsocket } from "./modules/message/interface/websocket/index.js";
 import { env } from "./shared/env.js";
 import { authPlugin } from "./shared/plugins/auth.js";
 
@@ -93,6 +95,8 @@ export class HttpServer {
   private async setRoutes() {
     await this.app.register(authRoutes, { prefix: "/auth" });
     await this.app.register(chatChannelRoutes, { prefix: "/chat-channels" });
+    await this.app.register(messageHTTPRoutes, { prefix: "/messages" });
+    await this.app.register(messageWebsocket, { prefix: "/ws" });
   }
 
   private errorHandling(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
