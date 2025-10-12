@@ -7,7 +7,7 @@ export class MessageService {
     private readonly cache: MessageCache,
   ) {}
 
-  public async handleSentUserMessage(payload: any) {
+  public async handleSentUserMessage(payload: { content: string; channel: string; user: string }) {
     const result = await this.repository.save({
       content: payload.content,
       channel: payload.channel,
@@ -15,5 +15,7 @@ export class MessageService {
     });
 
     this.cache.save(result, payload.channel);
+
+    return result;
   }
 }

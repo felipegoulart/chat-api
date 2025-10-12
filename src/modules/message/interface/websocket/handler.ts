@@ -40,10 +40,11 @@ export class WebSocketHandler {
   }
 
   private async handleIncomingRequest(userId: string, data: RawData) {
-    await this.pubSub.publish("user:message:new", data.toString());
+    await this.pubSub.publish("ws:user:message:new", data.toString());
   }
 
   private handleBroadcastMessage(message: string) {
+    console.log({ message });
     this.sockets.entries().forEach(([sessionId, socket]) => {
       socket.send(message);
     });

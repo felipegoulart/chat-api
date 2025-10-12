@@ -8,6 +8,8 @@ export class RedisEventBus {
   }
 
   public async subscribe<T>(channel: string, callback: (message: T) => void) {
-    await this.redis.PSUBSCRIBE(channel, (message) => callback(JSON.parse(message)));
+    const subConnection = this.redis.duplicate();
+    await subConnection.connect();
+    await subConnection.PSUBSCRIBE(channel, (message) => callback(JSON.parse(message)));
   }
 }
