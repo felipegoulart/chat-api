@@ -3,9 +3,9 @@ import { compare, hash } from "bcryptjs";
 import dayjs from "dayjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import status from "http-status";
+import type { RedisClientType } from "redis";
 import z from "zod";
-import { env } from "@/shared/env.js";
-import { MailSender } from "@/shared/mail-sender.js";
+import type { MailSender } from "@/shared/mail-sender.js";
 import { User } from "../user/index.js";
 
 export const createUserBodySchema = z
@@ -28,17 +28,22 @@ export const createUserBodySchema = z
 export type CreateUser = z.infer<typeof createUserBodySchema>;
 
 export class AuthController {
+  constructor(
+    private readonly cache: RedisClientType,
+    private readonly mailer: MailSender,
+  ) {}
+
   public async login(request: FastifyRequest<{ Body: { email: string; password: string } }>, reply: FastifyReply) {
     const { email, password } = request.body;
 
     const user = await User.findOne({ email });
     if (!user) {
-      return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
+      return reply.status(status.NOT_FOUND).send({ status: status[404], message: "User or password is incorrect" });
     }
 
     const isCorrectPassword = await compare(password, user.password);
     if (!isCorrectPassword) {
-      return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
+      return reply.status(status.NOT_FOUND).send({ status: status[404], message: "User or password is incorrect" });
     }
 
     const refreshToken = await reply.jwtSign({ sub: user._id.toString() }, { expiresIn: "7d" });
@@ -51,7 +56,7 @@ export class AuthController {
       expires: dayjs().add(7, "days").toDate(),
     });
 
-    return reply.status(status.OK).send({ message: status[200], data: { accessToken } });
+    return reply.status(status.OK).send({ status: status[200], data: { accessToken } });
   }
 
   public async logout(request: FastifyRequest, reply: FastifyReply) {
@@ -59,15 +64,15 @@ export class AuthController {
     const refreshToken = request.cookies.refreshToken || "";
 
     if (accessToken) {
-      request.redisCache.set(accessToken, "revoked");
-      request.redisCache.expire(accessToken, 60 * 15);
+      this.cache.set(accessToken, "revoked");
+      this.cache.expire(accessToken, 60 * 15);
     }
     if (refreshToken) {
-      request.redisCache.set(refreshToken, "revoked");
-      request.redisCache.expire(refreshToken, 60 * 60 * 24 * 7);
+      this.cache.set(refreshToken, "revoked");
+      this.cache.expire(refreshToken, 60 * 60 * 24 * 7);
     }
 
-    reply.status(status.OK).send({ message: status[200] });
+    reply.status(status.OK).send({ status: status[200] });
   }
 
   public async register(request: FastifyRequest<{ Body: CreateUser }>, reply: FastifyReply) {
@@ -75,7 +80,7 @@ export class AuthController {
 
     const result = await User.findOne({ email });
     if (result) {
-      return reply.status(status.CONFLICT).send({ message: "User already exists" });
+      return reply.status(status.CONFLICT).send({ status: status[409], error: "User already exists" });
     }
 
     const hashedPassword = await hash(password, 10);
@@ -89,19 +94,12 @@ export class AuthController {
     user.verified.tokenCreatedAt = new Date();
 
     await user.save();
+    this.mailer.setTemplateId("z86org8omwn4ew13");
+    this.mailer.setRecipient({ email, name: nickname });
+    this.mailer.setSubject("Welcome to Checkpoint!");
+    this.mailer.setTags(["verify-email"]);
 
-    // TODO: Move to async strategy
-    const mailSender = new MailSender({
-      email: env.APP_EMAIL_ADDRESS || "",
-      name: "Checkpoint App",
-    });
-
-    mailSender.setTemplateId("z86org8omwn4ew13");
-    mailSender.setRecipient({ email, name: nickname });
-    mailSender.setSubject("Welcome to Checkpoint!");
-    mailSender.setTags(["verify-email"]);
-
-    mailSender.setPersonalization([
+    this.mailer.setPersonalization([
       {
         email: email,
         data: {
@@ -111,9 +109,9 @@ export class AuthController {
       },
     ]);
 
-    mailSender.send();
+    this.mailer.send();
 
-    return reply.status(status.CREATED).send({ message: status[201] });
+    return reply.status(status.CREATED).send({ status: status[201] });
   }
 
   public async verify(request: FastifyRequest<{ Querystring: { token: string } }>, reply: FastifyReply) {
@@ -121,16 +119,16 @@ export class AuthController {
 
     const user = await User.findOne({ "verified.token": token });
     if (!user) {
-      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+      return reply.status(status.NOT_FOUND).send({ status: status[404] });
     }
 
     if (user.verified.isVerified) {
-      return reply.status(status.CONFLICT).send({ message: status[409] });
+      return reply.status(status.CONFLICT).send({ status: status[409] });
     }
 
     const isTokenExpired = dayjs(user.verified.tokenCreatedAt).add(24, "hours").isBefore(dayjs());
     if (isTokenExpired) {
-      return reply.status(status.GONE).send({ message: status[410] });
+      return reply.status(status.GONE).send({ status: status[410] });
     }
 
     user.verified.token = null;
@@ -140,7 +138,7 @@ export class AuthController {
 
     await user.save();
 
-    return reply.status(status.OK).send({ message: status[200] });
+    return reply.status(status.OK).send({ status: status[200] });
   }
 
   public async refresh(request: FastifyRequest, reply: FastifyReply) {
@@ -148,8 +146,8 @@ export class AuthController {
 
     await request.jwtDecode({ decode: { complete: true }, verify: { onlyCookie: true } });
 
-    request.redisCache.set(currentRefreshToken, "revoked");
-    request.redisCache.expire(currentRefreshToken, 60 * 60 * 24 * 7);
+    this.cache.set(currentRefreshToken, "revoked");
+    this.cache.expire(currentRefreshToken, 60 * 60 * 24 * 7);
 
     const newRefreshToken = await reply.jwtSign({ sub: request.user.id }, { expiresIn: "7d" });
     return reply
@@ -160,6 +158,6 @@ export class AuthController {
         expires: dayjs().add(7, "days").toDate(),
       })
       .status(status.OK)
-      .send({ message: status[200], data: { accessToken: await reply.jwtSign({ sub: request.user.id }) } });
+      .send({ status: status[200], data: { accessToken: await reply.jwtSign({ sub: request.user.id }) } });
   }
 }

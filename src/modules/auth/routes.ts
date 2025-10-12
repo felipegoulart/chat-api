@@ -1,8 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import z from "zod";
+import { env } from "@/shared/env.js";
+import { redis } from "@/shared/infra/redis/index.js";
+import { MailSender } from "@/shared/mail-sender.js";
 import { AuthController, createUserBodySchema } from "./controller.js";
 
-const authController = new AuthController();
+const mailer = new MailSender({
+  email: env.APP_EMAIL_ADDRESS,
+  name: "Checkpoint App",
+});
+const authController = new AuthController(redis, mailer);
 
 export const authRoutes = (app: FastifyInstance) => {
   app.route({
