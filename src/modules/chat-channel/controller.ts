@@ -2,7 +2,6 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { status } from "http-status";
 import { Types } from "mongoose";
 import z from "zod";
-import { SessionHandler } from "@/shared/session-handler.js";
 import { User } from "../user/model.js";
 import { toChatChannelResponse } from "./mappers.js";
 import { ChatChannelModel } from "./model.js";
@@ -31,8 +30,6 @@ export const createChatChannelResponseSchema = z.object({
 });
 
 export type ChatChannelResponse = z.infer<typeof createChatChannelResponseSchema>;
-
-const sessionHandler = new SessionHandler();
 
 export class ChatChannelController {
   async list(request: FastifyRequest<{ Headers: { user: string } }>, reply: FastifyReply) {
