@@ -2,11 +2,13 @@ import type { FastifyInstance } from "fastify";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { MessageEvent, RawData } from "ws";
 import { redis } from "../../src/infra/cache/redis";
-import { Room } from "../../src/modules/room/model";
+import { ChatChannelModel } from "../../src/modules/chat-channel/model";
 import { User } from "../../src/modules/user";
-import { createServer } from "../../src/server";
+import { HttpServer } from "../../src/server";
 
-describe("E2E -> Room", () => {
+const server = new HttpServer();
+
+describe("E2E -> Chat Channel", () => {
   let app: FastifyInstance;
 
   const userOne = new User({
@@ -22,11 +24,10 @@ describe("E2E -> Room", () => {
   let userOneId: string;
   let userTwoId: string;
 
-  const defaultRoom = { name: "Room 1", description: "This is room 1" };
+  const defaultChatChannel = { name: "ChatChannel 1", description: "This is channel 1" };
 
   beforeAll(async () => {
-    app = createServer();
-    await app.ready();
+    app = await server.createServer();
 
     await userOne.save();
     await userTwo.save();
@@ -35,7 +36,7 @@ describe("E2E -> Room", () => {
   });
 
   afterEach(async () => {
-    await Room.deleteMany();
+    await ChatChannelModel.deleteMany();
     await redis.flushAll();
   });
 
@@ -44,13 +45,13 @@ describe("E2E -> Room", () => {
     User.deleteMany();
   });
 
-  it("should create a room", async () => {
+  it("should create a channel", async () => {
     const response = await app.inject({
       method: "POST",
-      url: "/rooms",
+      url: "/chat-channels",
       payload: {
         adminId: userOne._id.toString(),
-        ...defaultRoom,
+        ...defaultChatChannel,
       },
     });
 
@@ -60,7 +61,7 @@ describe("E2E -> Room", () => {
       count: 1,
       total: 1,
       data: {
-        ...defaultRoom,
+        ...defaultChatChannel,
         id: expect.any(String),
         code: expect.any(String),
         createdAt: expect.any(String),
@@ -72,10 +73,10 @@ describe("E2E -> Room", () => {
   it("should allow an user to create a many rooms", async () => {
     const firstRoomResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
+      url: "/chat-channels",
       payload: {
         adminId: userOneId,
-        ...defaultRoom,
+        ...defaultChatChannel,
       },
     });
 
@@ -85,18 +86,18 @@ describe("E2E -> Room", () => {
       count: 1,
       total: 1,
       data: expect.objectContaining({
-        name: "Room 1",
-        description: "This is room 1",
+        name: "Chat Channel 1",
+        description: "This is channel 1",
       }),
     });
 
     const secondRoomResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
+      url: "/chat-channels",
       payload: {
         adminId: userOneId,
-        name: "Room 2",
-        description: "This is room 2",
+        name: "Chat Channel 2",
+        description: "This is channel 2",
       },
     });
 
@@ -106,8 +107,8 @@ describe("E2E -> Room", () => {
       count: 1,
       total: 1,
       data: expect.objectContaining({
-        name: "Room 2",
-        description: "This is room 2",
+        name: "Chat Channel 2",
+        description: "This is channel 2",
       }),
     });
   });
@@ -115,14 +116,14 @@ describe("E2E -> Room", () => {
   it("should return a rooms list user is member of", async () => {
     const createRoomResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userOneId },
     });
 
     await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userTwoId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userTwoId },
     });
 
     const {
@@ -130,7 +131,7 @@ describe("E2E -> Room", () => {
     } = await createRoomResponse.json();
 
     // TODO: create membership and test only rooms user is member of
-    const response = await app.inject({ method: "GET", url: "/rooms", headers: { user: userOneId } });
+    const response = await app.inject({ method: "GET", url: "/chat-channels", headers: { user: userOneId } });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
@@ -150,18 +151,18 @@ describe("E2E -> Room", () => {
     });
   });
 
-  it("should return a room by code", async () => {
+  it("should return a channel by code", async () => {
     const createResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userOneId },
     });
 
     const {
       data: { code },
     } = await createResponse.json();
 
-    const response = await app.inject({ method: "GET", url: `/rooms/${code}` });
+    const response = await app.inject({ method: "GET", url: `/chat-channels/${code}` });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual(
@@ -170,8 +171,8 @@ describe("E2E -> Room", () => {
         count: 1,
         total: 1,
         data: {
-          name: defaultRoom.name,
-          description: defaultRoom.description,
+          name: defaultChatChannel.name,
+          description: defaultChatChannel.description,
           code,
           id: expect.any(String),
           createdAt: expect.any(String),
@@ -181,11 +182,11 @@ describe("E2E -> Room", () => {
     );
   });
 
-  it("should allow an user to join a room by code", async () => {
+  it("should allow an user to join a channel by code", async () => {
     const createResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userOneId },
     });
 
     const {
@@ -194,21 +195,21 @@ describe("E2E -> Room", () => {
 
     const response = await app.inject({
       method: "POST",
-      url: `/rooms/${code}/join`,
+      url: `/chat-channels/${code}/join`,
       headers: { user: userTwoId },
     });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      message: `User ${userTwoId} joined room`,
+      message: `User ${userTwoId} joined channel`,
     });
   });
 
-  it("should not allow an user to join a room twice", async () => {
+  it("should not allow an user to join a channel twice", async () => {
     const createResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userOneId },
     });
 
     const {
@@ -217,13 +218,13 @@ describe("E2E -> Room", () => {
 
     await app.inject({
       method: "POST",
-      url: `/rooms/${code}/join`,
+      url: `/chat-channels/${code}/join`,
       headers: { user: userTwoId },
     });
 
     const response = await app.inject({
       method: "POST",
-      url: `/rooms/${code}/join`,
+      url: `/chat-channels/${code}/join`,
       headers: { user: userTwoId },
     });
 
@@ -233,8 +234,8 @@ describe("E2E -> Room", () => {
     });
   });
 
-  it("should return 404 when try to join into room that does not exist", async () => {
-    const response = await app.inject({ method: "POST", url: `/rooms/NOTEXIST/join` });
+  it("should return 404 when try to join into channel that does not exist", async () => {
+    const response = await app.inject({ method: "POST", url: `/channel/NOT_EXIST/join` });
 
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({
@@ -242,11 +243,11 @@ describe("E2E -> Room", () => {
     });
   });
 
-  it("should allow an user to leave a room by code", async () => {
+  it("should allow an user to leave a channel by code", async () => {
     const createRoomResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userOneId },
     });
 
     const {
@@ -255,13 +256,13 @@ describe("E2E -> Room", () => {
 
     await app.inject({
       method: "POST",
-      url: `/rooms/${code}/join`,
+      url: `/chat-channels/${code}/join`,
       headers: { user: userTwoId },
     });
 
     const response = await app.inject({
       method: "POST",
-      url: `/rooms/${code}/leave`,
+      url: `/chat-channels/${code}/leave`,
       headers: { user: userTwoId },
     });
 
@@ -271,18 +272,18 @@ describe("E2E -> Room", () => {
     });
   });
 
-  it("should connect to a room by code", async () => {
+  it("should connect to a channel by code", async () => {
     const createResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userOneId },
     });
 
     const {
       data: { code },
     } = await createResponse.json();
 
-    const ws = await app.injectWS(`/rooms/${code}`);
+    const ws = await app.injectWS(`/chat-channels/${code}`);
     let resolve: (value: unknown) => void;
     const promise = new Promise((r) => {
       resolve = r;
@@ -294,22 +295,22 @@ describe("E2E -> Room", () => {
 
     ws.send(JSON.stringify({ type: "connect_room", payload: {} }));
 
-    expect(await promise).toStrictEqual({ type: "connect_room", payload: { message: "Joined room", data: [] } });
+    expect(await promise).toStrictEqual({ type: "connect_room", payload: { message: "Joined channel", data: [] } });
   });
 
-  it("should send a message to others users in a room when a new user joins", async () => {
+  it("should send a message to others users in a channel when a new user joins", async () => {
     const createResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userOneId },
     });
 
     const {
       data: { code },
     } = await createResponse.json();
 
-    const firstUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userOneId } });
-    const secondUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userTwoId } });
+    const firstUserWS = await app.injectWS(`/chat-channels/${code}`, { headers: { user: userOneId } });
+    const secondUserWS = await app.injectWS(`/chat-channels/${code}`, { headers: { user: userTwoId } });
 
     const firstUserJoinRoomMessagePromise = new Promise((resolve) => {
       firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
@@ -319,7 +320,7 @@ describe("E2E -> Room", () => {
 
     expect(await firstUserJoinRoomMessagePromise).toStrictEqual({
       type: "connect_room",
-      payload: { message: "Joined room", data: [] },
+      payload: { message: "Joined channel", data: [] },
     });
 
     const secondUserJoinRoomMessagePromise = new Promise((resolve) => {
@@ -334,19 +335,19 @@ describe("E2E -> Room", () => {
 
     expect(await secondUserJoinRoomMessagePromise).toStrictEqual({
       type: "connect_room",
-      payload: { message: "Joined room", data: [] },
+      payload: { message: "Joined channel", data: [] },
     });
     expect(await firstUserReceivedMessageOnSecondUserJoinRoomPromise).toStrictEqual({
       type: "connect_room",
-      payload: { message: `User ${userTwoId} joined the room` },
+      payload: { message: `User ${userTwoId} joined the channel` },
     });
   });
 
-  it("should send a message to others users in a room when a new message is sent", async () => {
+  it("should send a message to others users in a channel when a new message is sent", async () => {
     const createRoomResponse = await app.inject({
       method: "POST",
-      url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      url: "/chat-channels",
+      payload: { ...defaultChatChannel, adminId: userOneId },
     });
 
     const {
@@ -355,12 +356,12 @@ describe("E2E -> Room", () => {
 
     await app.inject({
       method: "POST",
-      url: `/rooms/${code}/join`,
+      url: `/chat-channels/${code}/join`,
       headers: { user: userTwoId },
     });
 
-    const firstUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userOneId } });
-    const secondUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userTwoId } });
+    const firstUserWS = await app.injectWS(`/chat-channels/${code}`, { headers: { user: userOneId } });
+    const secondUserWS = await app.injectWS(`/chat-channels/${code}`, { headers: { user: userTwoId } });
 
     firstUserWS.send(JSON.stringify({ type: "connect_room", payload: {} }));
     secondUserWS.send(JSON.stringify({ type: "connect_room", payload: {} }));

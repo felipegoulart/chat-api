@@ -1,7 +1,13 @@
 import cookies from "@fastify/cookie";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import fastify, { type FastifyError, type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
+import fastify, {
+  type FastifyError,
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest,
+  type FastifyServerOptions,
+} from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
   isResponseSerializationError,
@@ -11,24 +17,20 @@ import {
 } from "fastify-type-provider-zod";
 import status from "http-status";
 import z from "zod";
-import { env } from "./env.js";
-import { WebSocketHandler } from "./infra/gateway/websocket-handler.js";
 import { authRoutes } from "./modules/auth/index.js";
-import { messagePlugin } from "./modules/message/index.js";
-import { roomRoutes } from "./modules/room/index.js";
+import { chatChannelRoutes } from "./modules/chat-channel/index.js";
 import { env } from "./shared/env.js";
 import { authPlugin } from "./shared/plugins/auth.js";
-import { redisPlugin } from "./shared/plugins/redis.js";
-
-let websocketGateway: WebSocketHandler;
 
 export class HttpServer {
   private readonly app: FastifyInstance;
 
-  constructor() {
-    this.app = fastify({
-      logger: env.NODE_ENV !== "test" ? { level: "debug" } : false,
-    }).withTypeProvider<ZodTypeProvider>();
+  public readonly defaultOptions: FastifyServerOptions = {
+    logger: env.NODE_ENV !== "test" ? { level: "debug" } : false,
+  };
+
+  constructor(options?: FastifyServerOptions) {
+    this.app = fastify({ ...this.defaultOptions, ...options }).withTypeProvider<ZodTypeProvider>();
   }
 
   public async createServer(): Promise<FastifyInstance> {
@@ -47,15 +49,10 @@ export class HttpServer {
     this.app.register(cookies);
     this.app.register(websocket);
     this.app.register(authPlugin);
-
-    await this.app.register(redisPlugin);
-    await this.app.register(messagePlugin);
   }
 
   private async bootstrap() {
     await this.registerPlugins();
-
-    websocketGateway = WebSocketHandler.getInstance(this.app);
 
     this.app.setValidatorCompiler(validatorCompiler);
     this.app.setSerializerCompiler(serializerCompiler);
@@ -94,16 +91,8 @@ export class HttpServer {
   }
 
   private async setRoutes() {
-    await this.app.register(
-      (app: FastifyInstance) => {
-        app.addHook("onRequest", app.authenticate);
-        app.get("/connect", { websocket: true }, websocketGateway.connectionHandler.bind(websocketGateway));
-      },
-      { prefix: "ws" },
-    );
-
     await this.app.register(authRoutes, { prefix: "/auth" });
-    await this.app.register(roomRoutes, { prefix: "/rooms" });
+    await this.app.register(chatChannelRoutes, { prefix: "/chat-channels" });
   }
 
   private errorHandling(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {

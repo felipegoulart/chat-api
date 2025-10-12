@@ -1,6 +1,6 @@
 import { model, Schema, type Types } from "mongoose";
 
-export interface IRoom {
+export interface ChatChannel {
   _id: Types.ObjectId;
   code: string;
   name: string;
@@ -11,7 +11,7 @@ export interface IRoom {
   updatedAt: Date;
 }
 
-const roomSchema = new Schema<IRoom>(
+const channelSchema = new Schema<ChatChannel>(
   {
     code: { type: String, required: true, unique: true },
     name: { type: String, required: true, index: true },
@@ -22,4 +22,4 @@ const roomSchema = new Schema<IRoom>(
   { timestamps: true },
 );
 
-export const Room = model<IRoom>("Room", roomSchema);
+export const ChatChannelModel = model<ChatChannel>("ChatChannel", channelSchema);

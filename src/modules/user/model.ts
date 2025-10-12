@@ -5,7 +5,7 @@ export interface IUser {
   nickname: string;
   email: string;
   password: string;
-  rooms: Types.ObjectId[];
+  chatChannel: Types.ObjectId[];
   verified: {
     isVerified: boolean;
     token: string | null;
@@ -21,7 +21,7 @@ const userSchema = new Schema<IUser>(
     nickname: { type: String, required: true, index: true },
     email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
-    rooms: [{ type: Schema.Types.ObjectId, ref: "Room" }],
+    chatChannel: [{ type: Schema.Types.ObjectId, ref: "ChatChannel" }],
     verified: {
       isVerified: { type: Boolean, default: false },
       token: { type: String, default: null },
