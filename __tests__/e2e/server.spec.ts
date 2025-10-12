@@ -1,13 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { beforeAll, describe, expect, it } from "vitest";
-import { createServer } from "../../src/server";
+import { HttpServer } from "../../src/server";
+
+const server = new HttpServer();
 
 describe("E2E -> Server", () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = createServer();
-    await app.ready();
+    app = await server.createServer();
   });
 
   it("should return a Luffy's promise", async () => {

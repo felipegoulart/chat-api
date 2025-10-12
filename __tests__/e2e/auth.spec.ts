@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { User } from "../../src/modules/user";
-import { createServer } from "../../src/server";
+import { HttpServer } from "../../src/server";
+
+const server = new HttpServer();
 
 describe("E2E -> Authorization", () => {
   let app: FastifyInstance;
@@ -13,8 +15,7 @@ describe("E2E -> Authorization", () => {
   };
 
   beforeAll(async () => {
-    app = createServer();
-    await app.ready();
+    app = await server.createServer();
   });
 
   it("should allow to create an user", async () => {
