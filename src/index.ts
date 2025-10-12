@@ -1,6 +1,6 @@
 import { connect } from "mongoose";
-import { env } from "./env.js";
 import { HttpServer } from "./server.js";
+import { env } from "./shared/env.js";
 
 const httpServer = new HttpServer();
 

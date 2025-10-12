@@ -1,6 +1,6 @@
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import type { Personalization } from "mailersend/lib/modules/Email.module.js";
-import { env } from "@/env.js";
+import { env } from "@/shared/env.js";
 
 export class MailSender {
   public readonly recipients: Recipient[] = [];

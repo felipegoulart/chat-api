@@ -16,6 +16,7 @@ import { WebSocketHandler } from "./infra/gateway/websocket-handler.js";
 import { authRoutes } from "./modules/auth/index.js";
 import { messagePlugin } from "./modules/message/index.js";
 import { roomRoutes } from "./modules/room/index.js";
+import { env } from "./shared/env.js";
 import { authPlugin } from "./shared/plugins/auth.js";
 import { redisPlugin } from "./shared/plugins/redis.js";
 
