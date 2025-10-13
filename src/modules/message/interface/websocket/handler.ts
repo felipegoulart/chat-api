@@ -40,7 +40,10 @@ export class WebSocketHandler {
   }
 
   private async handleIncomingRequest(userId: string, data: RawData) {
-    await this.pubSub.publish("ws:user:message:new", data.toString());
+    await this.pubSub.publish(
+      "ws:user:message:new",
+      JSON.stringify({ type: "newMessage", user: userId, payload: data.toString() }),
+    );
   }
 
   private handleBroadcastMessage(message: string) {
