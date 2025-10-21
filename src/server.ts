@@ -1,7 +1,13 @@
 import cookies from "@fastify/cookie";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import fastify, { type FastifyInstance } from "fastify";
+import fastify, {
+  type FastifyError,
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest,
+  type FastifyServerOptions,
+} from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
   isResponseSerializationError,
@@ -10,55 +16,87 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import status from "http-status";
-import z from "zod/v4";
-import { authRoutes } from "./modules/auth/index.js";
-import { roomRoutes } from "./modules/room/index.js";
-import { authPlugin } from "./shared/plugins/auth-plugin.js";
+import z from "zod";
+import { authRoutes } from "./modules/identity/index.js";
+import { env } from "./shared/env.js";
+import { authPlugin } from "./shared/plugins/auth.js";
 
-export const createServer = (): FastifyInstance => {
-  const app = fastify({
-    logger: process.env.NODE_ENV !== "test" ? { level: "debug" } : false,
-  }).withTypeProvider<ZodTypeProvider>();
+export class HttpServer {
+  private readonly app: FastifyInstance;
 
-  app.register(cors, {
-    origin: "*",
-  });
-  app.register(cookies);
-  app.register(websocket);
-  app.register(authPlugin);
+  public readonly defaultOptions: FastifyServerOptions = {
+    logger: env.NODE_ENV !== "test" ? { level: "debug" } : false,
+  };
 
-  app.setValidatorCompiler(validatorCompiler);
-  app.setSerializerCompiler(serializerCompiler);
+  constructor(options?: FastifyServerOptions) {
+    this.app = fastify({ ...this.defaultOptions, ...options }).withTypeProvider<ZodTypeProvider>();
+  }
 
-  app.get(
-    "/",
-    {
-      schema: {
-        response: {
-          200: z.literal("The Pirate King I'll be!"),
+  public async createServer(): Promise<FastifyInstance> {
+    await this.bootstrap();
+    this.setServerRoutes();
+    await this.setRoutes();
+
+    return this.app;
+  }
+
+  private async registerPlugins() {
+    this.app.register(cors, {
+      origin: "*",
+    });
+
+    this.app.register(cookies);
+    this.app.register(websocket);
+    this.app.register(authPlugin);
+  }
+
+  private async bootstrap() {
+    await this.registerPlugins();
+
+    this.app.setValidatorCompiler(validatorCompiler);
+    this.app.setSerializerCompiler(serializerCompiler);
+
+    this.app.setErrorHandler(this.errorHandling.bind(this));
+  }
+
+  private setServerRoutes() {
+    this.app.get(
+      "/",
+      {
+        schema: {
+          response: {
+            200: z.literal("Welcome to Checkpoint!"),
+          },
         },
       },
-    },
-    () => {
-      return "The Pirate King I'll be!" as const;
-    },
-  );
+      () => {
+        return "Welcome to Checkpoint!" as const;
+      },
+    );
 
-  app.get(
-    "/health",
-    {
-      schema: {
-        response: {
-          200: z.literal("ok"),
+    this.app.get(
+      "/health",
+      {
+        schema: {
+          response: {
+            200: z.literal("ok"),
+          },
         },
       },
-    },
-    () => {
-      return "ok" as const;
-    },
-  );
+      () => {
+        return "ok" as const;
+      },
+    );
+  }
 
-  app.setErrorHandler((error, request, reply) => {
+  private async setRoutes() {
+    await this.app.register(authRoutes, { prefix: "/auth" });
+    // await this.app.register(chatChannelRoutes, { prefix: "/chat-channels" });
+    // await this.app.register(messageHTTPRoutes, { prefix: "/messages" });
+    // await this.app.register(messageWebsocket, { prefix: "/ws" });
+  }
+
+  private errorHandling(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
     if (hasZodFastifySchemaValidationErrors(error)) {
       return reply.code(422).send({
         error: "Response Validation Error",
@@ -95,10 +133,5 @@ export const createServer = (): FastifyInstance => {
 
     request.log.error(error);
     reply.status(500).send({ error: "Internal server error" });
-  });
-
-  app.register(authRoutes, { prefix: "/auth" });
-  app.register(roomRoutes, { prefix: "/rooms" });
-
-  return app;
-};
+  }
+}
