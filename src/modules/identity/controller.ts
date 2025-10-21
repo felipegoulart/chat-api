@@ -4,8 +4,8 @@ import dayjs from "dayjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import status from "http-status";
 import z from "zod";
-import { env } from "@/env.js";
 import { redis } from "@/infra/cache/redis.js";
+import { env } from "@/shared/env.js";
 import { MailSender } from "@/shared/mail-sender.js";
 import { User } from "../user/index.js";
 
