@@ -12,14 +12,12 @@ export class Password {
   readonly value: string;
 
   private constructor(value: string) {
-    this.value = z.hash("sha256").parse(value);
+    this.value = value;
   }
 
   static async create(value: string) {
     const password = passwordSchema.parse(value);
-
     const hashedPassword = await hash(password, 10);
-
     return new Password(hashedPassword);
   }
 
