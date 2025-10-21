@@ -21,19 +21,19 @@ export class Profile {
   }
 
   public updateNickname(value: string): void {
-    const { nickname } = profileSchema.pick({ nickname: true }).parse(value);
+    const { nickname } = profileSchema.pick({ nickname: true }).parse({ nickname: value });
 
     this.nickname = nickname;
   }
 
   public updateAbout(value?: string): void {
-    const { about } = profileSchema.pick({ about: true }).parse(value);
+    const { about } = profileSchema.pick({ about: true }).parse({ about: value });
 
     this.about = about;
   }
 
   public updateAvatarUrl(value?: string): void {
-    const { avatarUrl } = profileSchema.pick({ avatarUrl: true }).parse(value);
+    const { avatarUrl } = profileSchema.pick({ avatarUrl: true }).parse({ avatarUrl: value });
 
     this.avatarUrl = avatarUrl;
   }
