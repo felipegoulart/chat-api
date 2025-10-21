@@ -1,8 +1,8 @@
 import jwt from "@fastify/jwt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
-import { env } from "@/env.js";
 import { redis } from "@/infra/cache/redis.js";
+import { env } from "../env.js";
 
 const plugin = async (app: FastifyInstance) => {
   app.register(jwt, {
