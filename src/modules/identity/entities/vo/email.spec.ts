@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 import { Email } from "./email.js";
 
-describe.only("UNIT -> Email value object", () => {
+describe("UNIT -> Email value object", () => {
   it("should create a valid email", () => {
     const defaultEmail = "teste@email.com";
     const email = new Email(defaultEmail);
