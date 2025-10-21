@@ -14,12 +14,7 @@ export const createUserBodySchema = z
   .object({
     nickname: z.string().min(3).max(36),
     email: z.email(),
-    password: z
-      .string()
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-        "Your password must have at least 8 characters, one uppercase, one lowercase, one number and one special character",
-      ),
+    password: passwordSchema,
     confirm: z.string(),
   })
   .refine((data) => data.confirm === data.password, {
