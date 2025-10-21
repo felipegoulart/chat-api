@@ -7,7 +7,8 @@ import z from "zod";
 import { redis } from "@/shared/cache/redis.js";
 import { env } from "@/shared/env.js";
 import { MailSender } from "@/shared/mail-sender.js";
-import { User } from "./infrastructure/user-model.js";
+import { passwordSchema } from "./entities/vo/password.js";
+import { UserModel } from "./infrastructure/user-model.js";
 
 export const createUserBodySchema = z
   .object({
@@ -32,7 +33,7 @@ export class AuthController {
   public async login(request: FastifyRequest<{ Body: { email: string; password: string } }>, reply: FastifyReply) {
     const { email, password } = request.body;
 
-    const user = await User.findOne({ email });
+    const user = await UserModel.findOne({ email });
     if (!user) {
       return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
     }
@@ -74,14 +75,14 @@ export class AuthController {
   public async register(request: FastifyRequest<{ Body: CreateUser }>, reply: FastifyReply) {
     const { nickname, password, email } = request.body;
 
-    const result = await User.findOne({ email });
+    const result = await UserModel.findOne({ email });
     if (result) {
       return reply.status(status.CONFLICT).send({ message: "User already exists" });
     }
 
     const hashedPassword = await hash(password, 10);
 
-    const user = new User({ nickname, password: hashedPassword, email });
+    const user = new UserModel({ nickname, password: hashedPassword, email });
 
     const token = crypto.randomUUID();
 
@@ -120,7 +121,7 @@ export class AuthController {
   public async verify(request: FastifyRequest<{ Querystring: { token: string } }>, reply: FastifyReply) {
     const { token } = request.query;
 
-    const user = await User.findOne({ "verified.token": token });
+    const user = await UserModel.findOne({ "verified.token": token });
     if (!user) {
       return reply.status(status.NOT_FOUND).send({ message: status[404] });
     }

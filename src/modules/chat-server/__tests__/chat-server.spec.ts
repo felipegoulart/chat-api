@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { MessageEvent, RawData } from "ws";
-import { User } from "@/modules/identity/infrastructure/user-model.js";
+import { UserModel } from "@/modules/identity/infrastructure/user-model.js";
 import { redis } from "@/shared/cache/redis.js";
 import { HttpServer } from "../../../server.js";
 import { ChatServer } from "../model.js";
@@ -10,12 +10,12 @@ describe.skip("E2E -> ChatServer", () => {
   const server = new HttpServer();
   let app: FastifyInstance;
 
-  const userOne = new User({
+  const userOne = new UserModel({
     nickname: "UserOne",
     email: "userone@test.com",
     password: "123@Test",
   });
-  const userTwo = new User({
+  const userTwo = new UserModel({
     nickname: "UserTwo",
     email: "usertwo@test.com",
     password: "123@Test",
@@ -41,7 +41,7 @@ describe.skip("E2E -> ChatServer", () => {
 
   afterAll(async () => {
     await app.close();
-    User.deleteMany();
+    UserModel.deleteMany();
   });
 
   it("should create a room", async () => {

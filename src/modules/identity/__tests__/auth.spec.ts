@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { beforeAll, describe, expect, it } from "vitest";
 import { HttpServer } from "@/server.js";
-import { User } from "../infrastructure/user-model.js";
+import { UserModel } from "../infrastructure/user-model.js";
 
 describe("E2E -> Authorization", async () => {
   const server = new HttpServer();
@@ -31,7 +31,7 @@ describe("E2E -> Authorization", async () => {
   });
 
   it("should return 409 http code when email already exists", async () => {
-    await User.create({
+    await UserModel.create({
       nickname: "UserTest",
       email: "user@test.com",
       password: "123@Test",

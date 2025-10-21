@@ -6,7 +6,7 @@ import type { RawData } from "ws";
 import z from "zod";
 import { redis } from "@/shared/cache/redis.js";
 import { SessionHandler } from "@/shared/session-handler.js";
-import { User } from "../identity/infrastructure/user-model.js";
+import { UserModel } from "../identity/infrastructure/user-model.js";
 import { Message } from "../message/model.js";
 import { toChatServerResponse } from "./mappers.js";
 import { ChatServer } from "./model.js";
@@ -81,7 +81,7 @@ export class ChatServerController {
 
     await chatServer.save();
 
-    await User.updateOne({ _id: adminId }, { $push: { chatServers: chatServer._id } });
+    await UserModel.updateOne({ _id: adminId }, { $push: { chatServers: chatServer._id } });
 
     return reply.status(status.CREATED).send({
       message: status[201],
@@ -109,7 +109,7 @@ export class ChatServerController {
     chatServer.members.push(userId);
     await chatServer.save();
 
-    await User.updateOne({ _id: userId }, { $push: { chatServers: chatServer._id } });
+    await UserModel.updateOne({ _id: userId }, { $push: { chatServers: chatServer._id } });
 
     return reply.status(status.OK).send({ message: `User ${userId.toString()} joined chatServer` });
   }
@@ -124,7 +124,7 @@ export class ChatServerController {
       return reply.status(status.NOT_FOUND).send({ message: status[404] });
     }
 
-    await User.updateOne({ _id: userId }, { $pull: { chatServers: chatServer._id } });
+    await UserModel.updateOne({ _id: userId }, { $pull: { chatServers: chatServer._id } });
 
     return reply.status(status.OK).send({ message: status[200] });
   }
