@@ -1,7 +1,7 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { connect, type Mongoose } from "mongoose";
 import { afterAll, afterEach, beforeAll } from "vitest";
-import { redis } from "../../../src/infra/cache/redis.js";
+import { redis } from "../../../src/shared/cache/redis.js";
 
 let mongoServer: MongoMemoryServer;
 let connection: Mongoose;

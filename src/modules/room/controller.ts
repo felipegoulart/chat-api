@@ -4,7 +4,7 @@ import { status } from "http-status";
 import { Types } from "mongoose";
 import type { RawData } from "ws";
 import z from "zod";
-import { redis } from "@/infra/cache/redis.js";
+import { redis } from "@/shared/cache/redis.js";
 import { SessionHandler } from "@/shared/session-handler.js";
 import { Message } from "../message/model.js";
 import { User } from "../user/model.js";
