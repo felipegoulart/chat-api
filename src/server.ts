@@ -17,6 +17,7 @@ import {
 } from "fastify-type-provider-zod";
 import status from "http-status";
 import z from "zod";
+import { chatServerRoutes } from "./modules/chat-server/routes.js";
 import { authRoutes } from "./modules/identity/index.js";
 import { env } from "./shared/env.js";
 import { authPlugin } from "./shared/plugins/auth.js";
@@ -91,7 +92,7 @@ export class HttpServer {
 
   private async setRoutes() {
     await this.app.register(authRoutes, { prefix: "/auth" });
-    // await this.app.register(chatChannelRoutes, { prefix: "/chat-channels" });
+    await this.app.register(chatServerRoutes, { prefix: "/chat-servers" });
     // await this.app.register(messageHTTPRoutes, { prefix: "/messages" });
     // await this.app.register(messageWebsocket, { prefix: "/ws" });
   }

@@ -4,9 +4,9 @@ import type { MessageEvent, RawData } from "ws";
 import { User } from "@/modules/identity/infrastructure/user-model.js";
 import { redis } from "@/shared/cache/redis.js";
 import { HttpServer } from "../../../server.js";
-import { Room } from "../model.js";
+import { ChatServer } from "../model.js";
 
-describe.skip("E2E -> Room", () => {
+describe.skip("E2E -> ChatServer", () => {
   const server = new HttpServer();
   let app: FastifyInstance;
 
@@ -23,7 +23,7 @@ describe.skip("E2E -> Room", () => {
   let userOneId: string;
   let userTwoId: string;
 
-  const defaultRoom = { name: "Room 1", description: "This is room 1" };
+  const defaultChatServer = { name: "ChatServer 1", description: "This is room 1" };
 
   beforeAll(async () => {
     app = await server.createServer();
@@ -35,7 +35,7 @@ describe.skip("E2E -> Room", () => {
   });
 
   afterEach(async () => {
-    await Room.deleteMany();
+    await ChatServer.deleteMany();
     await redis.flushAll();
   });
 
@@ -50,7 +50,7 @@ describe.skip("E2E -> Room", () => {
       url: "/rooms",
       payload: {
         adminId: userOne._id.toString(),
-        ...defaultRoom,
+        ...defaultChatServer,
       },
     });
 
@@ -60,7 +60,7 @@ describe.skip("E2E -> Room", () => {
       count: 1,
       total: 1,
       data: {
-        ...defaultRoom,
+        ...defaultChatServer,
         id: expect.any(String),
         code: expect.any(String),
         createdAt: expect.any(String),
@@ -70,64 +70,64 @@ describe.skip("E2E -> Room", () => {
   });
 
   it("should allow an user to create a many rooms", async () => {
-    const firstRoomResponse = await app.inject({
+    const firstChatServerResponse = await app.inject({
       method: "POST",
       url: "/rooms",
       payload: {
         adminId: userOneId,
-        ...defaultRoom,
+        ...defaultChatServer,
       },
     });
 
-    expect(firstRoomResponse.statusCode).toBe(201);
-    expect(firstRoomResponse.json()).toEqual({
+    expect(firstChatServerResponse.statusCode).toBe(201);
+    expect(firstChatServerResponse.json()).toEqual({
       message: "Created",
       count: 1,
       total: 1,
       data: expect.objectContaining({
-        name: "Room 1",
+        name: "ChatServer 1",
         description: "This is room 1",
       }),
     });
 
-    const secondRoomResponse = await app.inject({
+    const secondChatServerResponse = await app.inject({
       method: "POST",
       url: "/rooms",
       payload: {
         adminId: userOneId,
-        name: "Room 2",
+        name: "ChatServer 2",
         description: "This is room 2",
       },
     });
 
-    expect(secondRoomResponse.statusCode).toBe(201);
-    expect(secondRoomResponse.json()).toEqual({
+    expect(secondChatServerResponse.statusCode).toBe(201);
+    expect(secondChatServerResponse.json()).toEqual({
       message: "Created",
       count: 1,
       total: 1,
       data: expect.objectContaining({
-        name: "Room 2",
+        name: "ChatServer 2",
         description: "This is room 2",
       }),
     });
   });
 
   it("should return a rooms list user is member of", async () => {
-    const createRoomResponse = await app.inject({
+    const createChatServerResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      payload: { ...defaultChatServer, adminId: userOneId },
     });
 
     await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userTwoId },
+      payload: { ...defaultChatServer, adminId: userTwoId },
     });
 
     const {
       data: { id: roomId },
-    } = await createRoomResponse.json();
+    } = await createChatServerResponse.json();
 
     // TODO: create membership and test only rooms user is member of
     const response = await app.inject({ method: "GET", url: "/rooms", headers: { user: userOneId } });
@@ -154,7 +154,7 @@ describe.skip("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      payload: { ...defaultChatServer, adminId: userOneId },
     });
 
     const {
@@ -170,8 +170,8 @@ describe.skip("E2E -> Room", () => {
         count: 1,
         total: 1,
         data: {
-          name: defaultRoom.name,
-          description: defaultRoom.description,
+          name: defaultChatServer.name,
+          description: defaultChatServer.description,
           code,
           id: expect.any(String),
           createdAt: expect.any(String),
@@ -185,7 +185,7 @@ describe.skip("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      payload: { ...defaultChatServer, adminId: userOneId },
     });
 
     const {
@@ -208,7 +208,7 @@ describe.skip("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      payload: { ...defaultChatServer, adminId: userOneId },
     });
 
     const {
@@ -243,15 +243,15 @@ describe.skip("E2E -> Room", () => {
   });
 
   it("should allow an user to leave a room by code", async () => {
-    const createRoomResponse = await app.inject({
+    const createChatServerResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      payload: { ...defaultChatServer, adminId: userOneId },
     });
 
     const {
       data: { code },
-    } = await createRoomResponse.json();
+    } = await createChatServerResponse.json();
 
     await app.inject({
       method: "POST",
@@ -275,7 +275,7 @@ describe.skip("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      payload: { ...defaultChatServer, adminId: userOneId },
     });
 
     const {
@@ -301,7 +301,7 @@ describe.skip("E2E -> Room", () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      payload: { ...defaultChatServer, adminId: userOneId },
     });
 
     const {
@@ -311,47 +311,47 @@ describe.skip("E2E -> Room", () => {
     const firstUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userOneId } });
     const secondUserWS = await app.injectWS(`/rooms/${code}`, { headers: { user: userTwoId } });
 
-    const firstUserJoinRoomMessagePromise = new Promise((resolve) => {
+    const firstUserJoinChatServerMessagePromise = new Promise((resolve) => {
       firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
     });
 
     firstUserWS.send(JSON.stringify({ type: "connect_room", payload: { data: [] } }));
 
-    expect(await firstUserJoinRoomMessagePromise).toStrictEqual({
+    expect(await firstUserJoinChatServerMessagePromise).toStrictEqual({
       type: "connect_room",
       payload: { message: "Joined room", data: [] },
     });
 
-    const secondUserJoinRoomMessagePromise = new Promise((resolve) => {
+    const secondUserJoinChatServerMessagePromise = new Promise((resolve) => {
       secondUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
     });
 
-    const firstUserReceivedMessageOnSecondUserJoinRoomPromise = new Promise((resolve) => {
+    const firstUserReceivedMessageOnSecondUserJoinChatServerPromise = new Promise((resolve) => {
       firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
     });
 
     secondUserWS.send(JSON.stringify({ type: "connect_room", payload: {} }));
 
-    expect(await secondUserJoinRoomMessagePromise).toStrictEqual({
+    expect(await secondUserJoinChatServerMessagePromise).toStrictEqual({
       type: "connect_room",
       payload: { message: "Joined room", data: [] },
     });
-    expect(await firstUserReceivedMessageOnSecondUserJoinRoomPromise).toStrictEqual({
+    expect(await firstUserReceivedMessageOnSecondUserJoinChatServerPromise).toStrictEqual({
       type: "connect_room",
       payload: { message: `User ${userTwoId} joined the room` },
     });
   });
 
   it("should send a message to others users in a room when a new message is sent", async () => {
-    const createRoomResponse = await app.inject({
+    const createChatServerResponse = await app.inject({
       method: "POST",
       url: "/rooms",
-      payload: { ...defaultRoom, adminId: userOneId },
+      payload: { ...defaultChatServer, adminId: userOneId },
     });
 
     const {
       data: { code },
-    } = await createRoomResponse.json();
+    } = await createChatServerResponse.json();
 
     await app.inject({
       method: "POST",
@@ -365,16 +365,16 @@ describe.skip("E2E -> Room", () => {
     firstUserWS.send(JSON.stringify({ type: "connect_room", payload: {} }));
     secondUserWS.send(JSON.stringify({ type: "connect_room", payload: {} }));
 
-    const firstUserJoinRoomMessagePromise = new Promise((resolve) => {
+    const firstUserJoinChatServerMessagePromise = new Promise((resolve) => {
       firstUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
     });
-    const secondUserJoinRoomMessagePromise = new Promise((resolve) => {
+    const secondUserJoinChatServerMessagePromise = new Promise((resolve) => {
       secondUserWS.onmessage = (event: MessageEvent) => resolve(JSON.parse(event.data.toString()));
     });
 
     // It's necessary to be await user join messages
-    expect(await firstUserJoinRoomMessagePromise).toBeTruthy();
-    expect(await secondUserJoinRoomMessagePromise).toBeTruthy();
+    expect(await firstUserJoinChatServerMessagePromise).toBeTruthy();
+    expect(await secondUserJoinChatServerMessagePromise).toBeTruthy();
 
     firstUserWS.send(JSON.stringify({ type: "send_message", payload: { message: "Hi there!" } }));
 

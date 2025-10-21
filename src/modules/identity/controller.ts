@@ -4,10 +4,10 @@ import dayjs from "dayjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import status from "http-status";
 import z from "zod";
-import { redis } from "@/infra/cache/redis.js";
+import { redis } from "@/shared/cache/redis.js";
 import { env } from "@/shared/env.js";
 import { MailSender } from "@/shared/mail-sender.js";
-import { User } from "../user/index.js";
+import { User } from "./infrastructure/user-model.js";
 
 export const createUserBodySchema = z
   .object({

@@ -2,7 +2,7 @@ import type { WebSocket } from "@fastify/websocket";
 
 interface UserSession {
   userId: string;
-  room: string;
+  chatServer: string;
   socket: WebSocket;
 }
 
@@ -21,18 +21,18 @@ export class SessionHandler {
     SessionHandler.instance = this;
   }
 
-  public initSession({ userId, room, socket }: UserSession): Session {
-    const id = `${userId}:${room}`;
+  public initSession({ userId, chatServer, socket }: UserSession): Session {
+    const id = `${userId}:${chatServer}`;
 
     const session = this.connections.get(id);
     if (session) return { id, session };
 
-    this.connections.set(id, { userId, room, socket });
-    return { id, session: { userId, room, socket } };
+    this.connections.set(id, { userId, chatServer, socket });
+    return { id, session: { userId, chatServer, socket } };
   }
 
-  public getSessionsByRoom(room: string) {
-    return Array.from(this.connections.values()).filter((session) => session.room === room);
+  public getSessionsByChatServer(chatServer: string) {
+    return Array.from(this.connections.values()).filter((session) => session.chatServer === chatServer);
   }
 
   public getSessionsByUserId(user: string): UserSession | undefined {
