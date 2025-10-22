@@ -25,7 +25,7 @@ export class User {
     private chatServers: Id[] = [],
   ) {}
 
-  static create(value: UserType): User {
+  static create(value: Omit<UserType, "chatServers">): User {
     const { email, id, password, profile } = userSchema.parse(value);
 
     return new User(id, email, password, profile, []);
