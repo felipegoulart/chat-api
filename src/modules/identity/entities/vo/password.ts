@@ -9,19 +9,15 @@ export const passwordSchema = z
   );
 
 export class Password {
-  readonly value: string;
+  private constructor(private readonly value: string) {}
 
-  private constructor(value: string) {
-    this.value = value;
-  }
-
-  static async create(value: string) {
+  static async create(value: string): Promise<Password> {
     const password = passwordSchema.parse(value);
     const hashedPassword = await hash(password, 10);
     return new Password(hashedPassword);
   }
 
-  static restore(value: string) {
+  static restore(value: string): Password {
     return new Password(value);
   }
 
