@@ -6,10 +6,10 @@ import { Password } from "./vo/password.js";
 
 const userSchema = z.object({
   id: z.instanceof(Id),
-  profile: z.custom<Profile>((value): value is Profile => value === Profile.create),
   email: z.instanceof(Email),
-  password: z.custom<Password>((value): value is Password => value === Password.create),
-  chatServers: z.array(z.instanceof(Id)),
+  profile: z.custom<Profile>((value): value is Profile => value instanceof Profile),
+  password: z.custom<Password>((value): value is Password => value instanceof Password),
+  chatServers: z.array(z.instanceof(Id)).optional(),
 });
 
 type UserType = z.infer<typeof userSchema>;
