@@ -69,7 +69,7 @@ export class User {
   }
 
   public removeChatServer(serverId: Id) {
-    if (this.chatServers.find((id) => id.toString() === serverId.toString())) {
+    if (!this.chatServers.find((id) => id.toString() === serverId.toString())) {
       // TODO: Create domain error class
       throw new Error("Chat server not found");
     }
