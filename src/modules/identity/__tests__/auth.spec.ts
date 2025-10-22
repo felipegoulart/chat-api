@@ -31,10 +31,10 @@ describe("E2E -> Authorization", async () => {
   });
 
   it("should return 409 http code when email already exists", async () => {
-    await UserModel.create({
-      nickname: "UserTest",
-      email: "user@test.com",
-      password: "123@Test",
+    await app.inject({
+      method: "POST",
+      url: "/auth/register",
+      body: defaultUser,
     });
 
     const response = await app.inject({
