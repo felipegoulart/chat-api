@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import dayjs from "dayjs";
 import z from "zod";
 import { Id } from "@/shared/vo/Id.js";
 import { Profile } from "./profile.js";
@@ -15,7 +17,11 @@ const userSchema = z.object({
 type UserType = z.infer<typeof userSchema>;
 
 export class User {
-  private readonly MAX_CHAT_SERVERS = 10;
+  private readonly MAX_CHAT_SERVERS: number = 10;
+  private verificationTokenCreatedAt?: Date;
+
+  public verifiedAt?: Date;
+  public verificationToken?: string;
 
   private constructor(
     public readonly id: Id,
@@ -75,6 +81,33 @@ export class User {
     }
 
     this.chatServers = this.chatServers.filter((id) => id.toString() !== serverId.toString());
+  }
+
+  public isVerificationTokenValid(token: string): boolean {
+    const isSameToken = this.verificationToken === token;
+    const isNotExpired = dayjs(this.verificationTokenCreatedAt).add(24, "hours").isBefore(dayjs());
+
+    return isSameToken && isNotExpired;
+  }
+
+  public setVerificationToken(): void {
+    this.verificationToken = randomUUID();
+    this.verificationTokenCreatedAt = new Date();
+    this.verifiedAt = undefined;
+  }
+
+  public verify(token: string) {
+    if (!this.isVerificationTokenValid(token)) {
+      throw new Error("Invalid or expired token");
+    }
+
+    this.verifiedAt = new Date();
+    this.verificationToken = undefined;
+    this.verificationTokenCreatedAt = undefined;
+  }
+
+  public isVerified(): boolean {
+    return !!this.verifiedAt;
   }
 
   public toJSON(): {
