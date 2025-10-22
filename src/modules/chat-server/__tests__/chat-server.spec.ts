@@ -6,7 +6,7 @@ import { redis } from "@/shared/cache/redis.js";
 import { HttpServer } from "../../../server.js";
 import { ChatServer } from "../model.js";
 
-describe.skip("E2E -> ChatServer", () => {
+describe("E2E -> ChatServer", () => {
   const server = new HttpServer();
   let app: FastifyInstance;
 
