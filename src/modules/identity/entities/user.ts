@@ -21,8 +21,8 @@ export class User {
     public readonly id: Id,
     private readonly email: Email,
     private readonly password: Password,
-    private readonly profile: Profile,
-    private chatServers: Id[],
+    private profile: Profile,
+    private chatServers: Id[] = [],
   ) {}
 
   static create(value: UserType): User {
@@ -48,9 +48,7 @@ export class User {
   }
 
   public updateProfile(profile: Profile): void {
-    this.profile.updateAbout(profile.toJSON().about);
-    this.profile.updateAvatarUrl(profile.toJSON().avatarUrl);
-    this.profile.updateNickname(profile.toJSON().nickname);
+    this.profile = profile;
   }
 
   public async comparePassword(passwordInput: string) {
