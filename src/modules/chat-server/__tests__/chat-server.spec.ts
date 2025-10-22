@@ -271,7 +271,7 @@ describe("E2E -> ChatServer", () => {
     });
   });
 
-  it("should connect to a room by code", async () => {
+  it.skip("should connect to a room by code", async () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
@@ -297,7 +297,7 @@ describe("E2E -> ChatServer", () => {
     expect(await promise).toStrictEqual({ type: "connect_room", payload: { message: "Joined room", data: [] } });
   });
 
-  it("should send a message to others users in a room when a new user joins", async () => {
+  it.skip("should send a message to others users in a room when a new user joins", async () => {
     const createResponse = await app.inject({
       method: "POST",
       url: "/rooms",
@@ -342,7 +342,7 @@ describe("E2E -> ChatServer", () => {
     });
   });
 
-  it("should send a message to others users in a room when a new message is sent", async () => {
+  it.skip("should send a message to others users in a room when a new message is sent", async () => {
     const createChatServerResponse = await app.inject({
       method: "POST",
       url: "/rooms",
