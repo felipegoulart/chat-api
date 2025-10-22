@@ -15,6 +15,8 @@ const userSchema = z.object({
 type UserType = z.infer<typeof userSchema>;
 
 export class User {
+  private readonly MAX_CHAT_SERVERS = 10;
+
   private constructor(
     public readonly id: Id,
     private readonly email: Email,
@@ -60,9 +62,9 @@ export class User {
   }
 
   public addChatServer(serverId: Id) {
-    if (this.chatServers.length >= 10) {
+    if (this.chatServers.length >= this.MAX_CHAT_SERVERS) {
       // TODO: Create domain error class
-      throw new Error("User cannot have more than 10 chat servers");
+      throw new Error(`User cannot have more than ${this.MAX_CHAT_SERVERS} chat servers`);
     }
 
     this.chatServers.push(serverId);
