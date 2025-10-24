@@ -6,7 +6,10 @@ async function start() {
   const server = new HttpServer();
   const app = await server.createServer();
   try {
-    await connect(env.DATABASE_URL);
+    await connect(env.DATABASE_URL, {
+      appName: "Checkpoint Chat",
+      dbName: "checkpoint-development",
+    });
     console.log("Connected to database");
 
     app.listen({ port: env.PORT, host: env.HOST }, (err, address) => {
