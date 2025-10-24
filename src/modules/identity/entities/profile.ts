@@ -9,15 +9,20 @@ const profileSchema = z.object({
 type ProfileType = z.infer<typeof profileSchema>;
 
 export class Profile {
-  private constructor(
-    private nickname: string,
-    private about?: string,
-    private avatarUrl?: string,
-  ) {}
+  private nickname: string;
+  private about?: string;
+  private avatarUrl?: string;
 
-  static create(value: ProfileType): Profile {
-    const profile = profileSchema.parse(value);
-    return new Profile(profile.nickname, profile.about, profile.avatarUrl);
+  constructor(nickname: string, about?: string, avatarUrl?: string) {
+    const profile = profileSchema.parse({
+      about,
+      avatarUrl,
+      nickname,
+    });
+
+    this.nickname = profile.nickname;
+    this.about = profile.about;
+    this.avatarUrl = profile.avatarUrl;
   }
 
   public updateNickname(value: string): void {
