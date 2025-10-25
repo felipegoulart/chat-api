@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { beforeAll, describe, expect, it } from "vitest";
 import { HttpServer } from "@/server.js";
-import { UserModel } from "../infrastructure/user-model.js";
 
 describe("E2E -> Authorization", async () => {
   const server = new HttpServer();
