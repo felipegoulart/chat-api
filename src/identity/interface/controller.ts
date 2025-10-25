@@ -8,6 +8,7 @@ import { env } from "@/shared/env.js";
 import { MailSender } from "@/shared/mail-sender.js";
 import { AuthService } from "../domain/application/services/auth.service.js";
 import { passwordSchema } from "../domain/entities/vo/password.js";
+import { EmailAlreadyExistsError } from "../domain/errors/email-already-exists-error.js";
 import { UserMongooseRepository } from "../persistence/mongoose.repository.js";
 import { UserModel } from "../persistence/user-model.js";
 
@@ -83,23 +84,19 @@ export class AuthController {
 
       return reply.status(status("created")).send({ message: status(201) });
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "User already exists") {
-          return reply.status(status.CONFLICT).send({
-            message: error.message,
-          });
-        }
-
-        if (error.message === "Passwords do not match") {
-          return reply.status(status.BAD_REQUEST).send({
-            message: error.message,
-          });
-        }
+      if (error instanceof EmailAlreadyExistsError) {
+        return reply.status(status("conflict")).send({
+          message: error.message,
+        });
       }
 
-      return reply.status(status.INTERNAL_SERVER_ERROR).send({
-        message: "Internal server error",
-      });
+      if (error.message === "Passwords do not match") {
+        return reply.status(status("bad request")).send({
+          message: error.message,
+        });
+      }
+
+      throw error;
     }
 
     // TODO: Move to async strategy

@@ -1,5 +1,6 @@
 import type { UserRepository } from "../../../persistence/repository.js";
 import { User } from "../../entities/user.js";
+import { EmailAlreadyExistsError } from "../../errors/email-already-exists-error.js";
 
 type RegisterUserInput = {
   email: string;
@@ -27,7 +28,7 @@ export class AuthService {
 
     const result = await this.repository.findByEmail(email);
     if (result) {
-      throw new Error("User already exists");
+      throw new EmailAlreadyExistsError();
     }
 
     const user = await User.create({
