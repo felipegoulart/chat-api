@@ -1,13 +1,16 @@
 import { model, Schema, type Types } from "mongoose";
 
 export interface IUser {
-  _id: Types.ObjectId;
-  nickname: string;
+  _id: string;
   email: string;
   password: string;
-  rooms: Types.ObjectId[];
+  chatServers: string[];
+  profile: {
+    nickname: string;
+    about?: string;
+    avatarUrl?: string;
+  };
   verified: {
-    isVerified: boolean;
     token: string | null;
     tokenCreatedAt: Date | null;
     verifiedAt: Date;
@@ -18,12 +21,16 @@ export interface IUser {
 
 const userSchema = new Schema<IUser>(
   {
-    nickname: { type: String, required: true, index: true },
+    _id: { type: String, auto: false },
     email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
-    rooms: [{ type: Schema.Types.ObjectId, ref: "Room" }],
+    profile: {
+      nickname: { type: String, required: true, index: true },
+      about: { type: String, index: true },
+      avatarUrl: { type: String },
+    },
+    chatServers: [{ type: Schema.Types.ObjectId, ref: "ChatServer" }],
     verified: {
-      isVerified: { type: Boolean, default: false },
       token: { type: String, default: null },
       tokenCreatedAt: { type: Date, default: null },
       verifiedAt: { type: Date, default: null },
