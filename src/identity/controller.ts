@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import { compare, hash } from "bcryptjs";
 import dayjs from "dayjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -7,7 +6,9 @@ import z from "zod";
 import { redis } from "@/shared/cache/redis.js";
 import { env } from "@/shared/env.js";
 import { MailSender } from "@/shared/mail-sender.js";
-import { passwordSchema } from "./entities/vo/password.js";
+import { AuthService } from "./domain/application/services/auth.service.js";
+import { passwordSchema } from "./domain/entities/vo/password.js";
+import { UserMongooseRepository } from "./infrastructure/mongoose.repository.js";
 import { UserModel } from "./infrastructure/user-model.js";
 
 export const createUserBodySchema = z
@@ -103,29 +104,27 @@ export class AuthController {
     }
 
     // TODO: Move to async strategy
-    const mailSender = new MailSender({
-      email: env.APP_EMAIL_ADDRESS || "",
-      name: "Checkpoint App",
-    });
+    // const mailSender = new MailSender({
+    //   email: env.APP_EMAIL_ADDRESS || "",
+    //   name: "Checkpoint App",
+    // });
 
-    mailSender.setTemplateId("z86org8omwn4ew13");
-    mailSender.setRecipient({ email, name: nickname });
-    mailSender.setSubject("Welcome to Checkpoint!");
-    mailSender.setTags(["verify-email"]);
+    // mailSender.setTemplateId("z86org8omwn4ew13");
+    // mailSender.setRecipient({ email, name: nickname });
+    // mailSender.setSubject("Welcome to Checkpoint!");
+    // mailSender.setTags(["verify-email"]);
 
-    mailSender.setPersonalization([
-      {
-        email: email,
-        data: {
-          name: nickname,
-          verifyLink: `http://localhost:3000/auth/verify?token=${token}`,
-        },
-      },
-    ]);
+    // mailSender.setPersonalization([
+    //   {
+    //     email: email,
+    //     data: {
+    //       name: nickname,
+    //       verifyLink: `http://localhost:3000/auth/verify?token=${token}`,
+    //     },
+    //   },
+    // ]);
 
-    mailSender.send();
-
-    return reply.status(status.CREATED).send({ message: status[201] });
+    // mailSender.send();
   }
 
   public async verify(request: FastifyRequest<{ Querystring: { token: string } }>, reply: FastifyReply) {
@@ -140,17 +139,9 @@ export class AuthController {
       return reply.status(status.CONFLICT).send({ message: status[409] });
     }
 
-    const isTokenExpired = dayjs(user.verified.tokenCreatedAt).add(24, "hours").isBefore(dayjs());
     if (isTokenExpired) {
       return reply.status(status.GONE).send({ message: status[410] });
     }
-
-    user.verified.token = null;
-    user.verified.tokenCreatedAt = null;
-    user.verified.isVerified = true;
-    user.verified.verifiedAt = new Date();
-
-    await user.save();
 
     return reply.status(status.OK).send({ message: status[200] });
   }

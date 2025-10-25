@@ -1,5 +1,5 @@
 import type { HydratedDocument, Model } from "mongoose";
-import { User } from "../entities/user.js";
+import { User } from "../domain/entities/user.js";
 import type { UserRepository } from "./repository.js";
 import type { IUser } from "./user-model.js";
 

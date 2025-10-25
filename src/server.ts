@@ -17,8 +17,8 @@ import {
 } from "fastify-type-provider-zod";
 import status from "http-status";
 import z from "zod";
-import { chatServerRoutes } from "./modules/chat-server/routes.js";
-import { authRoutes } from "./modules/identity/index.js";
+import { chatServerRoutes } from "./chat-server/routes.js";
+import { authRoutes } from "./identity/index.js";
 import { env } from "./shared/env.js";
 import { authPlugin } from "./shared/plugins/auth.js";
 

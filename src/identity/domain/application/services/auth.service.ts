@@ -1,5 +1,5 @@
+import type { UserRepository } from "../../../infrastructure/repository.js";
 import { User } from "../../entities/user.js";
-import type { UserRepository } from "../../infrastructure/repository.js";
 
 type RegisterUserInput = {
   email: string;
