@@ -84,7 +84,6 @@ export class AuthController {
       return reply.status(status.CREATED).send({ message: status[201] });
     } catch (error) {
       if (error instanceof Error) {
-        console.error(error);
         if (error.message === "User already exists") {
           return reply.status(status.CONFLICT).send({
             message: error.message,
