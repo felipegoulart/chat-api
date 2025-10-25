@@ -1,1 +1,1 @@
-export { authRoutes } from "./routes.js";
+export { authRoutes } from "./interface/routes.js";

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { MessageEvent, RawData } from "ws";
-import { UserModel } from "@/identity/infrastructure/user-model.js";
+import { UserModel } from "@/identity/persistence/user-model.js";
 import { redis } from "@/shared/cache/redis.js";
 import { HttpServer } from "../../server.js";
 import { ChatServer } from "../model.js";

@@ -1,4 +1,4 @@
-import type { UserRepository } from "../../../infrastructure/repository.js";
+import type { UserRepository } from "../../../persistence/repository.js";
 import { User } from "../../entities/user.js";
 
 type RegisterUserInput = {

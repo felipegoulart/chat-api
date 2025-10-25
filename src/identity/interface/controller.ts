@@ -6,10 +6,10 @@ import z from "zod";
 import { redis } from "@/shared/cache/redis.js";
 import { env } from "@/shared/env.js";
 import { MailSender } from "@/shared/mail-sender.js";
-import { AuthService } from "./domain/application/services/auth.service.js";
-import { passwordSchema } from "./domain/entities/vo/password.js";
-import { UserMongooseRepository } from "./infrastructure/mongoose.repository.js";
-import { UserModel } from "./infrastructure/user-model.js";
+import { AuthService } from "../domain/application/services/auth.service.js";
+import { passwordSchema } from "../domain/entities/vo/password.js";
+import { UserMongooseRepository } from "../persistence/mongoose.repository.js";
+import { UserModel } from "../persistence/user-model.js";
 
 export const createUserBodySchema = z
   .object({

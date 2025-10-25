@@ -6,7 +6,7 @@ import type { RawData } from "ws";
 import z from "zod";
 import { redis } from "@/shared/cache/redis.js";
 import { SessionHandler } from "@/shared/session-handler.js";
-import { UserModel } from "../identity/infrastructure/user-model.js";
+import { UserModel } from "../identity/persistence/user-model.js";
 import { Message } from "../message/model.js";
 import { toChatServerResponse } from "./mappers.js";
 import { ChatServer } from "./model.js";
