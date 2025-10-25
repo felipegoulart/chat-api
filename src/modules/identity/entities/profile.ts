@@ -1,6 +1,6 @@
 import z from "zod";
 
-const profileSchema = z.object({
+export const profileSchema = z.object({
   nickname: z.string().min(3).max(32),
   about: z.string().max(128).optional(),
   avatarUrl: z.url().optional(),

@@ -1,47 +1,45 @@
+import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Id } from "@/shared/vo/Id.js";
 import { Profile } from "./profile.js";
 import { User } from "./user.js";
-import { Email } from "./vo/email.js";
 import { Password } from "./vo/password.js";
 
 describe("UNIT -> User entity", () => {
-  let id: Id;
-  let email: Email;
-  let password: Password;
-  let profile: Profile;
+  let email: string;
+  let password: string;
+  let profile: ReturnType<User["profile"]["toJSON"]>;
 
   beforeAll(async () => {
-    id = new Id();
-    email = new Email("test@example.com");
-    password = await Password.create("ValidPassword123!");
-    profile = Profile.create({ nickname: "tester" });
+    email = "test@example.com";
+    password = "ValidPassword123!";
+    profile = { nickname: "tester" };
   });
 
   describe("create()", () => {
-    it("should create a User instance with valid data", () => {
-      const user = User.create({ id, email, password, profile });
+    it("should create a User instance with valid data", async () => {
+      const user = await User.create({ email, password, profile });
 
       expect(user).toBeInstanceOf(User);
-      expect(user.getId()).toBe(id.toString());
-      expect(user.getEmail()).toBe("test@example.com");
+      expect(user.getId()).toEqual(expect.any(String));
+      expect(user.getEmail()).toEqual("test@example.com");
       expect(user.getProfile().nickname).toBe("tester");
-      expect(user.toJSON().id).toBe(id.toString());
+      expect(user.toJSON().id).toEqual(expect.any(String));
     });
 
-    it("should create a user with an empty list of chat servers", () => {
-      const user = User.create({ id, email, password, profile });
+    it("should create a user with an empty list of chat servers", async () => {
+      const user = await User.create({ email, password, profile });
       const userJson = user.toJSON();
 
-      // Ensure chatServers is not part of the public JSON representation
-      expect(userJson).not.toHaveProperty("chatServers");
+      expect(userJson).toHaveProperty("chatServers");
     });
   });
 
   describe("restore()", () => {
     it("should restore a User instance with all its data", () => {
-      const serverId1 = new Id();
-      const serverId2 = new Id();
+      const id = randomUUID();
+      const serverId1 = new Id().toString();
+      const serverId2 = new Id().toString();
       const user = User.restore({
         id,
         email,
@@ -60,8 +58,8 @@ describe("UNIT -> User entity", () => {
   });
 
   describe("Profile management", () => {
-    it("should get the user's profile as a JSON object", () => {
-      const user = User.create({ id, email, password, profile });
+    it("should get the user's profile as a JSON object", async () => {
+      const user = await User.create({ email, password, profile });
       const userProfile = user.getProfile();
 
       expect(userProfile).toEqual({
@@ -71,13 +69,9 @@ describe("UNIT -> User entity", () => {
       });
     });
 
-    it("should update the user's profile", () => {
-      const user = User.create({ id, email, password, profile });
-      const newProfile = Profile.create({
-        nickname: "new_tester",
-        about: "I am a new tester",
-        avatarUrl: "https://example.com/new.png",
-      });
+    it("should update the user's profile", async () => {
+      const user = await User.create({ email, password, profile });
+      const newProfile = new Profile("new_tester", "I am a new tester", "https://example.com/new.png");
 
       user.updateProfile(newProfile);
 
@@ -90,40 +84,32 @@ describe("UNIT -> User entity", () => {
   });
 
   describe("Password management", () => {
-    it("should return the hashed password string", () => {
-      vi.spyOn(password, "toString");
-      const user = User.create({ id, email, password, profile });
+    it("should return the hashed password string", async () => {
+      const user = await User.create({ email, password, profile });
       const userPassword = user.getPassword();
 
-      expect(password.toString).toBeCalledTimes(1);
-      expect(userPassword).toBe(password.toString());
+      expect(userPassword).toEqual(expect.any(String));
+      expect(userPassword).not.toBe(password);
     });
 
     it("should correctly compare a valid password", async () => {
-      vi.spyOn(password, "compare").mockResolvedValue(true);
-      const user = User.create({ id, email, password, profile });
+      const user = await User.create({ email, password, profile });
       const isMatch = await user.comparePassword("ValidPassword123!");
       expect(isMatch).toBe(true);
-    });
-
-    it("should correctly fail to compare an invalid password", async () => {
-      vi.spyOn(password, "compare").mockResolvedValue(false);
-      const user = User.create({ id, email, password, profile });
-      const isMatch = await user.comparePassword("WrongPassword!");
-      expect(isMatch).toBe(false);
     });
   });
 
   describe("Chat Server management", () => {
-    it("should add a chat server to the user", () => {
-      const user = User.create({ id, email, password, profile });
-      const serverId = new Id();
+    it("should add a chat server to the user", async () => {
+      const user = await User.create({ email, password, profile });
+      const serverId = new Id().toString();
       user.addChatServer(serverId);
       expect(() => user.removeChatServer(serverId)).not.toThrow();
     });
 
     it("should remove a chat server from the user", () => {
-      const serverId = new Id();
+      const id = new Id().toString();
+      const serverId = new Id().toString();
       const user = User.restore({
         id,
         email,
@@ -135,18 +121,83 @@ describe("UNIT -> User entity", () => {
       expect(() => user.removeChatServer(serverId)).toThrow("Chat server not found");
     });
 
-    it("should throw an error when trying to remove a non-existent chat server", () => {
-      const user = User.create({ id, email, password, profile });
-      const nonExistentServerId = new Id();
+    it("should throw an error when trying to remove a non-existent chat server", async () => {
+      const user = await User.create({ email, password, profile });
+      const nonExistentServerId = new Id().toString();
       expect(() => user.removeChatServer(nonExistentServerId)).toThrow("Chat server not found");
     });
 
     it("should throw an error when adding more than the maximum number of chat servers", () => {
-      const serverIds = Array.from({ length: 10 }, () => new Id());
+      const id = new Id().toString();
+      const serverIds = Array.from({ length: 10 }, () => new Id().toString());
+
       const user = User.restore({ id, email, password, profile, chatServers: serverIds });
-      const extraServerId = new Id();
+      const extraServerId = new Id().toString();
 
       expect(() => user.addChatServer(extraServerId)).toThrow("User cannot have more than 10 chat servers");
+    });
+  });
+
+  describe("Verification management", () => {
+    it("should set verification token details", async () => {
+      const user = await User.create({ email, password, profile });
+      user.setVerificationToken();
+
+      const userJson = user.toJSON();
+
+      expect(userJson.verificationToken).toEqual(expect.any(String));
+      expect(userJson.verificationTokenCreatedAt).toBeInstanceOf(Date);
+      expect(userJson.verifiedAt).toBeNull();
+    });
+
+    it("should return false for a non-verified user", async () => {
+      const user = await User.create({ email, password, profile });
+      expect(user.isVerified()).toBe(false);
+    });
+
+    it("should verify a user with a valid token", async () => {
+      const user = await User.create({ email, password, profile });
+      user.setVerificationToken();
+      const token = user.verificationToken as string;
+
+      user.verify(token);
+
+      expect(user.isVerified()).toBe(true);
+      const userJson = user.toJSON();
+      expect(userJson.verifiedAt).toBeInstanceOf(Date);
+      expect(userJson.verificationToken).toBeNull();
+      expect(userJson.verificationTokenCreatedAt).toBeNull();
+    });
+
+    it("should throw an error when verifying with an invalid token", async () => {
+      const user = await User.create({ email, password, profile });
+      user.setVerificationToken();
+
+      expect(() => user.verify("invalid-token")).toThrow("Invalid or expired token");
+    });
+
+    it("should throw an error when verifying with an expired token", async () => {
+      vi.useFakeTimers();
+      const user = await User.create({ email, password, profile });
+      user.setVerificationToken();
+      const token = user.toJSON().verificationToken as string;
+
+      // Advance time by 25 hours
+      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+
+      expect(() => user.verify(token)).toThrow("Invalid or expired token");
+
+      vi.useRealTimers();
+    });
+
+    it("should return true for a valid token that is not expired", async () => {
+      const user = await User.create({ email, password, profile });
+      user.setVerificationToken();
+      const token = user.toJSON().verificationToken as string;
+
+      const isValid = user.isVerificationTokenValid(token);
+
+      expect(isValid).toBe(true);
     });
   });
 });

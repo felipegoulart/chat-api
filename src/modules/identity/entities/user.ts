@@ -2,43 +2,82 @@ import { randomUUID } from "node:crypto";
 import dayjs from "dayjs";
 import z from "zod";
 import { Id } from "@/shared/vo/Id.js";
-import { Profile } from "./profile.js";
+import { Profile, profileSchema } from "./profile.js";
 import { Email } from "./vo/email.js";
 import { Password } from "./vo/password.js";
 
 const userSchema = z.object({
-  id: z.instanceof(Id),
-  email: z.instanceof(Email),
-  profile: z.custom<Profile>((value): value is Profile => value instanceof Profile),
-  password: z.custom<Password>((value): value is Password => value instanceof Password),
-  chatServers: z.array(z.instanceof(Id)).optional(),
+  id: z.string(),
+  email: z.string(),
+  profile: profileSchema,
+  password: z.string(),
+  chatServers: z.array(z.string()),
+  verificationToken: z.uuidv4().nullish(),
+  verificationTokenCreatedAt: z.date().nullish(),
+  verifiedAt: z.date().nullish(),
+});
+
+const createUserSchema = userSchema.omit({
+  id: true,
+  chatServers: true,
+  verificationToken: true,
+  verificationTokenCreatedAt: true,
+  verifiedAt: true,
 });
 
 type UserType = z.infer<typeof userSchema>;
+type UserCreateInput = z.infer<typeof createUserSchema>;
+
+type UserOutput = {
+  id: string;
+  profile: ReturnType<User["profile"]["toJSON"]>;
+  email: string;
+  password?: string;
+  chatServers: string[];
+  verificationToken: string | null;
+  verificationTokenCreatedAt: Date | null;
+  verifiedAt: Date | null;
+};
 
 export class User {
   private readonly MAX_CHAT_SERVERS: number = 10;
-  private verificationTokenCreatedAt?: Date;
-
-  public verifiedAt?: Date;
-  public verificationToken?: string;
 
   private constructor(
     public readonly id: Id,
+
     private readonly email: Email,
     private readonly password: Password,
+
     private profile: Profile,
     private chatServers: Id[] = [],
+
+    private verificationTokenCreatedAt: Date | null = null,
+    public verificationToken: string | null = null,
+    public verifiedAt: Date | null = null,
   ) {}
 
-  static create(value: Omit<UserType, "chatServers">): User {
-    const { email, id, password, profile } = userSchema.parse(value);
+  static async create(value: UserCreateInput): Promise<User> {
+    const { email, password, profile } = createUserSchema.parse(value);
 
-    return new User(id, email, password, profile, []);
+    const user = new User(
+      new Id(),
+      new Email(email),
+      await Password.create(password),
+      new Profile(profile.nickname, profile.about, profile.avatarUrl),
+    );
+
+    return user;
   }
 
   static restore({ email, id, password, profile, chatServers }: UserType): User {
-    return new User(id, email, password, profile, chatServers);
+    const userProfile = new Profile(profile.nickname, profile.about, profile.avatarUrl);
+    return new User(
+      new Id(id),
+      new Email(email),
+      Password.restore(password),
+      userProfile,
+      chatServers.map((chatServerId) => new Id(chatServerId)),
+    );
   }
 
   public getId(): string {
@@ -65,17 +104,18 @@ export class User {
     return this.password.toString();
   }
 
-  public addChatServer(serverId: Id) {
+  public addChatServer(serverId: string) {
     if (this.chatServers.length >= this.MAX_CHAT_SERVERS) {
       // TODO: Create domain error class
       throw new Error(`User cannot have more than ${this.MAX_CHAT_SERVERS} chat servers`);
     }
 
-    this.chatServers.push(serverId);
+    const id = new Id(serverId);
+    this.chatServers.push(id);
   }
 
-  public removeChatServer(serverId: Id) {
-    if (!this.chatServers.find((id) => id.toString() === serverId.toString())) {
+  public removeChatServer(serverId: string) {
+    if (!this.chatServers.find((id) => id.toString() === serverId)) {
       // TODO: Create domain error class
       throw new Error("Chat server not found");
     }
@@ -85,7 +125,7 @@ export class User {
 
   public isVerificationTokenValid(token: string): boolean {
     const isSameToken = this.verificationToken === token;
-    const isNotExpired = dayjs(this.verificationTokenCreatedAt).add(24, "hours").isBefore(dayjs());
+    const isNotExpired = dayjs(this.verificationTokenCreatedAt).add(24, "hours").isAfter(dayjs());
 
     return isSameToken && isNotExpired;
   }
@@ -93,7 +133,7 @@ export class User {
   public setVerificationToken(): void {
     this.verificationToken = randomUUID();
     this.verificationTokenCreatedAt = new Date();
-    this.verifiedAt = undefined;
+    this.verifiedAt = null;
   }
 
   public verify(token: string) {
@@ -102,23 +142,29 @@ export class User {
     }
 
     this.verifiedAt = new Date();
-    this.verificationToken = undefined;
-    this.verificationTokenCreatedAt = undefined;
+    this.verificationToken = null;
+    this.verificationTokenCreatedAt = null;
   }
 
   public isVerified(): boolean {
     return !!this.verifiedAt;
   }
 
-  public toJSON(): {
-    id: string;
-    profile: ReturnType<User["profile"]["toJSON"]>;
-    email: string;
-  } {
-    return {
+  public toJSON(config?: { includesPassword: boolean }): UserOutput {
+    const user: UserOutput = {
       id: this.id.toString(),
       profile: this.profile.toJSON(),
       email: this.email.toString(),
+      chatServers: this.chatServers.map((id) => id.toString()),
+      verificationToken: this.verificationToken,
+      verificationTokenCreatedAt: this.verificationTokenCreatedAt,
+      verifiedAt: this.verifiedAt,
     };
+
+    if (config?.includesPassword) {
+      user.password = this.getPassword();
+    }
+
+    return user;
   }
 }
