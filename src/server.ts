@@ -15,7 +15,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import status from "http-status";
+import status from "statuses";
 import z from "zod";
 import { chatServerRoutes } from "./chat-server/routes.js";
 import { authRoutes } from "./identity/index.js";
@@ -125,11 +125,11 @@ export class HttpServer {
     }
 
     if (error.statusCode === 401) {
-      return reply.status(status.UNAUTHORIZED).send({ error: status[401] });
+      return reply.status(status("unauthorized")).send({ error: status(401) });
     }
 
     if (error.statusCode === 403) {
-      return reply.status(status.FORBIDDEN).send({ error: status[403] });
+      return reply.status(status("forbidden")).send({ error: status(403) });
     }
 
     request.log.error(error);

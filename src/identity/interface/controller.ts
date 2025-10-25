@@ -1,7 +1,7 @@
 import { compare, hash } from "bcryptjs";
 import dayjs from "dayjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import status from "http-status";
+import status from "statuses";
 import z from "zod";
 import { redis } from "@/shared/cache/redis.js";
 import { env } from "@/shared/env.js";
@@ -33,12 +33,12 @@ export class AuthController {
 
     const user = await UserModel.findOne({ email });
     if (!user) {
-      return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
+      return reply.status(status("not found")).send({ message: "User or password is incorrect" });
     }
 
     const isCorrectPassword = await compare(password, user.password);
     if (!isCorrectPassword) {
-      return reply.status(status.NOT_FOUND).send({ message: "User or password is incorrect" });
+      return reply.status(status("not found")).send({ message: "User or password is incorrect" });
     }
 
     const refreshToken = await reply.jwtSign({ sub: user._id });
@@ -51,7 +51,7 @@ export class AuthController {
       expires: dayjs().add(7, "days").toDate(),
     });
 
-    return reply.status(status.OK).send({ message: status[200], data: { accessToken } });
+    return reply.status(status("ok")).send({ message: status(200), data: { accessToken } });
   }
 
   public async logout(request: FastifyRequest, reply: FastifyReply) {
@@ -67,7 +67,7 @@ export class AuthController {
       redis.expire(refreshToken, 60 * 60 * 24 * 7);
     }
 
-    reply.status(status.OK).send({ message: status[200] });
+    reply.status(status("ok")).send({ message: status(200) });
   }
 
   public async register(request: FastifyRequest<{ Body: CreateUser }>, reply: FastifyReply) {
@@ -81,7 +81,7 @@ export class AuthController {
         confirmPassword: confirm,
       });
 
-      return reply.status(status.CREATED).send({ message: status[201] });
+      return reply.status(status("created")).send({ message: status(201) });
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "User already exists") {
@@ -131,18 +131,18 @@ export class AuthController {
 
     const user = await UserModel.findOne({ "verified.token": token });
     if (!user) {
-      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+      return reply.status(status("not found")).send({ message: status(404) });
     }
 
     if (user.verified.isVerified) {
-      return reply.status(status.CONFLICT).send({ message: status[409] });
+      return reply.status(status("conflict")).send({ message: status(409) });
     }
 
     if (isTokenExpired) {
-      return reply.status(status.GONE).send({ message: status[410] });
+      return reply.status(status("gone")).send({ message: status(410) });
     }
 
-    return reply.status(status.OK).send({ message: status[200] });
+    return reply.status(status("ok")).send({ message: status(200) });
   }
 
   public async refresh(request: FastifyRequest, reply: FastifyReply) {
@@ -161,7 +161,7 @@ export class AuthController {
         sameSite: "strict",
         expires: dayjs().add(7, "days").toDate(),
       })
-      .status(status.OK)
-      .send({ message: status[200], data: { accessToken: await reply.jwtSign({ sub: request.user }) } });
+      .status(status("ok"))
+      .send({ message: status(200), data: { accessToken: await reply.jwtSign({ sub: request.user }) } });
   }
 }

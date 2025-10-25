@@ -1,7 +1,7 @@
 import type { WebSocket } from "@fastify/websocket";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { status } from "http-status";
 import { Types } from "mongoose";
+import status from "statuses";
 import type { RawData } from "ws";
 import z from "zod";
 import { redis } from "@/shared/cache/redis.js";
@@ -43,10 +43,10 @@ export class ChatServerController {
     try {
       const results = await ChatServer.find({ members: request.headers.user }).sort({ createdAt: -1 });
 
-      return reply.code(status.OK).send({
+      return reply.code(status("ok")).send({
         count: results.length, // TODO: implement pagination
         data: results.map(toChatServerResponse),
-        message: status[200],
+        message: status(200),
         total: results.length,
       });
     } catch (error) {
@@ -61,11 +61,11 @@ export class ChatServerController {
     const chatServer = await ChatServer.findOne({ code });
 
     if (!chatServer) {
-      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+      return reply.status(status("not found")).send({ message: status(404) });
     }
 
-    return reply.status(status.OK).send({
-      message: status[200],
+    return reply.status(status("ok")).send({
+      message: status(200),
       count: 1,
       total: 1,
       data: toChatServerResponse(chatServer),
@@ -83,8 +83,8 @@ export class ChatServerController {
 
     await UserModel.updateOne({ _id: adminId }, { $push: { chatServers: chatServer._id } });
 
-    return reply.status(status.CREATED).send({
-      message: status[201],
+    return reply.status(status("created")).send({
+      message: status(201),
       count: 1,
       total: 1,
       data: toChatServerResponse(chatServer),
@@ -99,11 +99,11 @@ export class ChatServerController {
 
     const chatServer = await ChatServer.findOne({ code });
     if (!chatServer) {
-      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+      return reply.status(status("not found")).send({ message: status(404) });
     }
 
     if (chatServer.members.includes(userId)) {
-      return reply.status(status.CONFLICT).send({ message: status[409] });
+      return reply.status(status("conflict")).send({ message: status(409) });
     }
 
     chatServer.members.push(userId);
@@ -111,7 +111,7 @@ export class ChatServerController {
 
     await UserModel.updateOne({ _id: userId }, { $push: { chatServers: chatServer._id } });
 
-    return reply.status(status.OK).send({ message: `User ${userId.toString()} joined chatServer` });
+    return reply.status(status("ok")).send({ message: `User ${userId.toString()} joined chatServer` });
   }
 
   async leave(request: FastifyRequest<{ Params: { code: string }; Headers: { user: string } }>, reply: FastifyReply) {
@@ -121,12 +121,12 @@ export class ChatServerController {
 
     const chatServer = await ChatServer.findOneAndUpdate({ code }, { $pull: { members: userId } });
     if (!chatServer) {
-      return reply.status(status.NOT_FOUND).send({ message: status[404] });
+      return reply.status(status("not found")).send({ message: status(404) });
     }
 
     await UserModel.updateOne({ _id: userId }, { $pull: { chatServers: chatServer._id } });
 
-    return reply.status(status.OK).send({ message: status[200] });
+    return reply.status(status("ok")).send({ message: status(200) });
   }
 
   async handleConnection(
