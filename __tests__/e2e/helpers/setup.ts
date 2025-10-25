@@ -18,6 +18,6 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
-  await connection.connection.close();
+  await connection.disconnect();
   await mongoServer.stop();
 });
