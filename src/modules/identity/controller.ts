@@ -25,6 +25,8 @@ export const createUserBodySchema = z
 export type CreateUser = z.infer<typeof createUserBodySchema>;
 
 export class AuthController {
+  constructor(private readonly authService = new AuthService(new UserMongooseRepository(UserModel))) {}
+
   public async login(request: FastifyRequest<{ Body: { email: string; password: string } }>, reply: FastifyReply) {
     const { email, password } = request.body;
 
@@ -68,24 +70,37 @@ export class AuthController {
   }
 
   public async register(request: FastifyRequest<{ Body: CreateUser }>, reply: FastifyReply) {
-    const { nickname, password, email } = request.body;
+    const { nickname, password, email, confirm } = request.body;
 
-    const result = await UserModel.findOne({ email });
-    if (result) {
-      return reply.status(status.CONFLICT).send({ message: "User already exists" });
+    try {
+      await this.authService.register({
+        nickname,
+        password,
+        email,
+        confirmPassword: confirm,
+      });
+
+      return reply.status(status.CREATED).send({ message: status[201] });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(error);
+        if (error.message === "User already exists") {
+          return reply.status(status.CONFLICT).send({
+            message: error.message,
+          });
+        }
+
+        if (error.message === "Passwords do not match") {
+          return reply.status(status.BAD_REQUEST).send({
+            message: error.message,
+          });
+        }
+      }
+
+      return reply.status(status.INTERNAL_SERVER_ERROR).send({
+        message: "Internal server error",
+      });
     }
-
-    const hashedPassword = await hash(password, 10);
-
-    const user = new UserModel({ nickname, password: hashedPassword, email });
-
-    const token = crypto.randomUUID();
-
-    user.verified.isVerified = false;
-    user.verified.token = token;
-    user.verified.tokenCreatedAt = new Date();
-
-    await user.save();
 
     // TODO: Move to async strategy
     const mailSender = new MailSender({
