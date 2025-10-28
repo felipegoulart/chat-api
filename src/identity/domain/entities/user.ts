@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import dayjs from "dayjs";
-import z from "zod";
+import z, { ZodError } from "zod";
+import { DomainError } from "@/shared/errors/domain-error.js";
+import { formatZodError } from "@/shared/errors/zod-error-transform.js";
 import { Id } from "@/shared/vo/Id.js";
 import { Profile, profileSchema } from "./profile.js";
 import { Email } from "./vo/email.js";
@@ -57,27 +59,44 @@ export class User {
   ) {}
 
   static async create(value: UserCreateInput): Promise<User> {
-    const { email, password, profile } = createUserSchema.parse(value);
+    try {
+      const { email, password, profile } = createUserSchema.parse(value);
 
-    const user = new User(
-      new Id(),
-      new Email(email),
-      await Password.create(password),
-      new Profile(profile.nickname, profile.about, profile.avatarUrl),
-    );
+      const user = new User(
+        new Id(),
+        new Email(email),
+        await Password.create(password),
+        new Profile(profile.nickname, profile.about, profile.avatarUrl),
+      );
 
-    return user;
+      return user;
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new DomainError("Invalid user data", 422, "Invalid data provided to restore user", formatZodError(error));
+      }
+
+      throw error;
+    }
   }
 
   static restore({ email, id, password, profile, chatServers }: UserType): User {
-    const userProfile = new Profile(profile.nickname, profile.about, profile.avatarUrl);
-    return new User(
-      new Id(id),
-      new Email(email),
-      Password.restore(password),
-      userProfile,
-      chatServers.map((chatServerId) => new Id(chatServerId)),
-    );
+    try {
+      const userProfile = new Profile(profile.nickname, profile.about, profile.avatarUrl);
+      return new User(
+        new Id(id),
+        new Email(email),
+        Password.restore(password),
+        userProfile,
+        chatServers.map((chatServerId) => new Id(chatServerId)),
+      );
+    } catch (error) {
+      console.log({ error });
+      if (error instanceof ZodError) {
+        throw new DomainError("Invalid user data", 422, "Invalid data provided to restore user", formatZodError(error));
+      }
+
+      throw error;
+    }
   }
 
   public getId(): string {

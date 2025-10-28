@@ -1,15 +1,23 @@
 import type { FastifyInstance } from "fastify";
 import z from "zod";
-import { AuthController, createUserBodySchema } from "./controller.js";
+import { apiErrorResponseFormatterReturnSchema } from "@/shared/errors/api-error.js";
+import { AuthService } from "../domain/application/services/auth.service.js";
+import { UserMongooseRepository } from "../persistence/mongoose.repository.js";
+import { AuthController } from "./controller.js";
 
-const authController = new AuthController();
+const userMongooseRepository = new UserMongooseRepository();
+const authService = new AuthService(userMongooseRepository);
+const authController = new AuthController(authService);
 
 export const authRoutes = (app: FastifyInstance) => {
   app.route({
     method: "POST",
     url: "/register",
     schema: {
-      body: createUserBodySchema,
+      response: {
+        "4xx": apiErrorResponseFormatterReturnSchema,
+        "500": apiErrorResponseFormatterReturnSchema,
+      },
     },
     handler: authController.register.bind(authController),
   });

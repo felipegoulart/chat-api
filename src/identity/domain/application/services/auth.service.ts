@@ -1,6 +1,7 @@
 import type { UserRepository } from "../../../persistence/repository.js";
 import { User } from "../../entities/user.js";
 import { EmailAlreadyExistsError } from "../../errors/email-already-exists-error.js";
+import { PasswordsDoNotMatchError } from "../../errors/passwords-do-not-match-error.js";
 
 type RegisterUserInput = {
   email: string;
@@ -23,12 +24,20 @@ export class AuthService {
     avatarUrl,
   }: RegisterUserInput): Promise<User> {
     if (password !== confirmPassword) {
-      throw new Error("Passwords do not match");
+      throw new PasswordsDoNotMatchError({
+        fields: {
+          confirmPassword: ["Passwords don't match"],
+        },
+      });
     }
 
     const result = await this.repository.findByEmail(email);
     if (result) {
-      throw new EmailAlreadyExistsError();
+      throw new EmailAlreadyExistsError({
+        fields: {
+          email: ["The provided email address is already registered. Please use a different email or log in."],
+        },
+      });
     }
 
     const user = await User.create({

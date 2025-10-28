@@ -8,11 +8,13 @@ import { Password } from "./vo/password.js";
 describe("UNIT -> User entity", () => {
   let email: string;
   let password: string;
+  let hashedPassword: string;
   let profile: ReturnType<User["profile"]["toJSON"]>;
 
   beforeAll(async () => {
     email = "test@example.com";
     password = "ValidPassword123!";
+    hashedPassword = (await Password.create(password)).toString();
     profile = { nickname: "tester" };
   });
 
@@ -36,14 +38,14 @@ describe("UNIT -> User entity", () => {
   });
 
   describe("restore()", () => {
-    it("should restore a User instance with all its data", () => {
+    it("should restore a User instance with all its data", async () => {
       const id = randomUUID();
       const serverId1 = new Id().toString();
       const serverId2 = new Id().toString();
       const user = User.restore({
         id,
         email,
-        password,
+        password: hashedPassword,
         profile,
         chatServers: [serverId1, serverId2],
       });
@@ -113,7 +115,7 @@ describe("UNIT -> User entity", () => {
       const user = User.restore({
         id,
         email,
-        password,
+        password: hashedPassword,
         profile,
         chatServers: [serverId],
       });
@@ -131,7 +133,7 @@ describe("UNIT -> User entity", () => {
       const id = new Id().toString();
       const serverIds = Array.from({ length: 10 }, () => new Id().toString());
 
-      const user = User.restore({ id, email, password, profile, chatServers: serverIds });
+      const user = User.restore({ id, email, password: hashedPassword, profile, chatServers: serverIds });
       const extraServerId = new Id().toString();
 
       expect(() => user.addChatServer(extraServerId)).toThrow("User cannot have more than 10 chat servers");

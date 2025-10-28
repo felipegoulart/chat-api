@@ -5,11 +5,12 @@ import status from "statuses";
 import z from "zod";
 import { redis } from "@/shared/cache/redis.js";
 import { env } from "@/shared/env.js";
+import { apiErrorResponseFormatter } from "@/shared/errors/api-error.js";
 import { MailSender } from "@/shared/mail-sender.js";
-import { AuthService } from "../domain/application/services/auth.service.js";
+import type { AuthService } from "../domain/application/services/auth.service.js";
 import { passwordSchema } from "../domain/entities/vo/password.js";
 import { EmailAlreadyExistsError } from "../domain/errors/email-already-exists-error.js";
-import { UserMongooseRepository } from "../persistence/mongoose.repository.js";
+import { PasswordsDoNotMatchError } from "../domain/errors/passwords-do-not-match-error.js";
 import { UserModel } from "../persistence/user-model.js";
 
 export const createUserBodySchema = z
@@ -17,9 +18,9 @@ export const createUserBodySchema = z
     nickname: z.string().min(3).max(36),
     email: z.email(),
     password: passwordSchema,
-    confirm: z.string(),
+    confirmPassword: z.string(),
   })
-  .refine((data) => data.confirm === data.password, {
+  .refine((data) => data.confirmPassword === data.password, {
     error: "Passwords don't match",
     path: ["confirm"],
   });
@@ -27,7 +28,7 @@ export const createUserBodySchema = z
 export type CreateUser = z.infer<typeof createUserBodySchema>;
 
 export class AuthController {
-  constructor(private readonly authService = new AuthService(new UserMongooseRepository(UserModel))) {}
+  constructor(private readonly authService: AuthService) {}
 
   public async login(request: FastifyRequest<{ Body: { email: string; password: string } }>, reply: FastifyReply) {
     const { email, password } = request.body;
@@ -72,28 +73,24 @@ export class AuthController {
   }
 
   public async register(request: FastifyRequest<{ Body: CreateUser }>, reply: FastifyReply) {
-    const { nickname, password, email, confirm } = request.body;
+    const { nickname, password, email, confirmPassword } = request.body;
 
     try {
       await this.authService.register({
         nickname,
         password,
         email,
-        confirmPassword: confirm,
+        confirmPassword,
       });
 
       return reply.status(status("created")).send({ message: status(201) });
     } catch (error) {
       if (error instanceof EmailAlreadyExistsError) {
-        return reply.status(status("conflict")).send({
-          message: error.message,
-        });
+        return reply.status(error.statusCode).send(apiErrorResponseFormatter(error));
       }
 
-      if (error.message === "Passwords do not match") {
-        return reply.status(status("bad request")).send({
-          message: error.message,
-        });
+      if (error instanceof PasswordsDoNotMatchError) {
+        return reply.status(error.statusCode).send(apiErrorResponseFormatter(error));
       }
 
       throw error;

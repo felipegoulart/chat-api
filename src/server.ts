@@ -9,7 +9,6 @@ import fastify, {
   type FastifyServerOptions,
 } from "fastify";
 import {
-  hasZodFastifySchemaValidationErrors,
   isResponseSerializationError,
   serializerCompiler,
   validatorCompiler,
@@ -20,6 +19,8 @@ import z from "zod";
 import { chatServerRoutes } from "./chat-server/routes.js";
 import { authRoutes } from "./identity/index.js";
 import { env } from "./shared/env.js";
+import { apiErrorResponseFormatter } from "./shared/errors/api-error.js";
+import { DomainError } from "./shared/errors/domain-error.js";
 import { authPlugin } from "./shared/plugins/auth.js";
 
 export class HttpServer {
@@ -98,19 +99,6 @@ export class HttpServer {
   }
 
   private errorHandling(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
-    if (hasZodFastifySchemaValidationErrors(error)) {
-      return reply.code(422).send({
-        error: "Response Validation Error",
-        message: "Request doesn't match the schema",
-        statusCode: 422,
-        details: {
-          issues: error.validation,
-          method: request.method,
-          url: request.url,
-        },
-      });
-    }
-
     if (isResponseSerializationError(error)) {
       return reply.code(500).send({
         error: "Internal Server Error",
@@ -122,6 +110,10 @@ export class HttpServer {
           url: error.url,
         },
       });
+    }
+
+    if (error instanceof DomainError) {
+      return reply.status(error.statusCode).send(apiErrorResponseFormatter(error));
     }
 
     if (error.statusCode === 401) {

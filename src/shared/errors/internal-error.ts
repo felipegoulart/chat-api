@@ -5,11 +5,11 @@ export class InternalError extends Error {
 
   constructor(
     public readonly message: string,
-    public readonly code: number = 500,
+    public readonly statusCode: number = 500,
     public readonly description?: string,
   ) {
     super(message);
-    this.codeAsString = status(code);
+    this.codeAsString = status(statusCode);
     this.name = this.constructor.name;
     Error.captureStackTrace(this, this.constructor);
   }

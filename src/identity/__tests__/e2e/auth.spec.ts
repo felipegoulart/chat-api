@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { UserModel } from "@/identity/persistence/user-model.js";
 import { HttpServer } from "@/server.js";
 
 describe("E2E -> Authorization", async () => {
@@ -9,11 +10,15 @@ describe("E2E -> Authorization", async () => {
     nickname: "UserTest",
     email: "user@test.com",
     password: "123@Test",
-    confirm: "123@Test",
+    confirmPassword: "123@Test",
   };
 
   beforeAll(async () => {
     app = await server.createServer();
+  });
+
+  afterEach(async () => {
+    await UserModel.deleteMany();
   });
 
   it("should allow to create an user", async () => {
@@ -44,7 +49,13 @@ describe("E2E -> Authorization", async () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toEqual({
-      message: "User already exists",
+      code: 409,
+      description: "The provided email address is already registered. Please use a different email or log in.",
+      error: "Conflict",
+      fields: {
+        email: ["The provided email address is already registered. Please use a different email or log in."],
+      },
+      message: "Email already exists",
     });
   });
 
@@ -56,24 +67,18 @@ describe("E2E -> Authorization", async () => {
         nickname: "",
         email: defaultUser.email,
         password: defaultUser.password,
-        confirm: defaultUser.confirm,
+        confirmPassword: defaultUser.confirmPassword,
       },
     });
 
     expect(response.statusCode).toBe(422);
     expect(await response.json()).toEqual(
       expect.objectContaining({
-        error: "Response Validation Error",
-        details: {
-          issues: expect.arrayContaining([
-            expect.objectContaining({
-              instancePath: "/nickname",
-              keyword: "too_small",
-              message: "Too small: expected string to have >=3 characters",
-            }),
-          ]),
-          method: "POST",
-          url: "/auth/register",
+        code: 422,
+        description: "Invalid data provided to restore user",
+        error: "Unprocessable Entity",
+        fields: {
+          "profile.nickname": ["Too small: expected string to have >=3 characters"],
         },
       }),
     );

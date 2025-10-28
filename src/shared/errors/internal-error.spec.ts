@@ -8,7 +8,7 @@ describe("UNIT -> InternalError", () => {
 
     expect(error).toBeInstanceOf(InternalError);
     expect(error.message).toBe(errorMessage);
-    expect(error.code).toBe(500);
+    expect(error.statusCode).toBe(500);
     expect(error.description).toBeUndefined();
     expect(error.name).toBe("InternalError");
   });
@@ -19,7 +19,7 @@ describe("UNIT -> InternalError", () => {
     const error = new InternalError(errorMessage, errorCode);
 
     expect(error.message).toBe(errorMessage);
-    expect(error.code).toBe(errorCode);
+    expect(error.statusCode).toBe(errorCode);
     expect(error.description).toBeUndefined();
   });
 
@@ -30,7 +30,7 @@ describe("UNIT -> InternalError", () => {
     const error = new InternalError(errorMessage, errorCode, errorDescription);
 
     expect(error.message).toBe(errorMessage);
-    expect(error.code).toBe(errorCode);
+    expect(error.statusCode).toBe(errorCode);
     expect(error.description).toBe(errorDescription);
   });
 

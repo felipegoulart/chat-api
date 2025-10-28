@@ -1,10 +1,10 @@
 import type { HydratedDocument, Model } from "mongoose";
 import { User } from "../domain/entities/user.js";
 import type { UserRepository } from "./repository.js";
-import type { IUser } from "./user-model.js";
+import { type IUser, UserModel } from "./user-model.js";
 
 export class UserMongooseRepository implements UserRepository {
-  constructor(private readonly model: Model<IUser>) {}
+  private readonly model: Model<IUser> = UserModel;
 
   public async create(payload: User): Promise<User> {
     const { email, id, profile, password, verificationToken, verificationTokenCreatedAt } = payload.toJSON({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ZodError } from "zod";
+import { DomainError } from "@/shared/errors/domain-error.js";
 import { Email } from "./email.js";
 
 describe("UNIT -> Email value object", () => {
@@ -17,37 +17,59 @@ describe("UNIT -> Email value object", () => {
     expect(email.toString()).toBe(emailString);
   });
 
-  it("should throw an error when passing an invalid email format (missing @)", () => {
+  it("should throw a DomainError for an invalid email format", () => {
     const invalidEmail = "invalid-email.com";
-    expect(() => new Email(invalidEmail)).toThrow(ZodError);
+    const expectedError = new DomainError("Invalid email address", 422, "Invalid email address", {
+      email: ["Invalid email address"],
+    });
+    expect(() => new Email(invalidEmail)).toThrow(expectedError);
   });
 
-  it("should throw an error when passing an invalid email format (missing domain)", () => {
-    const invalidEmail = "user@";
-    expect(() => new Email(invalidEmail)).toThrow(ZodError);
+  it("should throw a DomainError with correct details for an invalid email", () => {
+    const invalidEmail = "invalid-email.com";
+    try {
+      new Email(invalidEmail);
+      // Fail test if constructor does not throw
+      expect.fail("Constructor should have thrown a DomainError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(DomainError);
+      expect(error).toHaveProperty("statusCode", 422);
+      expect(error).toHaveProperty("message", "Invalid email address");
+      expect(error).toHaveProperty("description", "Invalid email address");
+      expect(error).toHaveProperty("fields", { email: ["Invalid email address"] });
+    }
   });
 
-  it("should throw an error when passing an invalid email format (invalid characters)", () => {
-    const invalidEmail = "user name@example.com"; // Space is invalid
-    expect(() => new Email(invalidEmail)).toThrow(ZodError);
+  it("should throw a DomainError for an empty string", () => {
+    const expectedError = new DomainError("Invalid email address", 422, "Invalid email address", {
+      email: ["Invalid email address"],
+    });
+    expect(() => new Email("")).toThrow(expectedError);
   });
 
-  it("should throw an error for an empty string", () => {
-    expect(() => new Email("")).toThrow(ZodError);
-  });
-
-  it("should throw an error if create method receives null", () => {
+  it("should throw a DomainError if create method receives null", () => {
+    const expectedError = new DomainError(
+      "Invalid email address",
+      422,
+      "Invalid input: expected string, received null",
+      {
+        email: ["Invalid input: expected string, received null"],
+      },
+    );
     // @ts-expect-error testing invalid input
-    expect(() => new Email(null)).toThrow(ZodError);
+    expect(() => new Email(null)).toThrow(expectedError);
   });
 
-  it("should throw an error if create method receives undefined", () => {
+  it("should throw a DomainError if create method receives a non-string value", () => {
+    const expectedError = new DomainError(
+      "Invalid email address",
+      422,
+      "Invalid input: expected string, received number",
+      {
+        email: ["Invalid input: expected string, received number"],
+      },
+    );
     // @ts-expect-error testing invalid input
-    expect(() => new Email(undefined)).toThrow(ZodError);
-  });
-
-  it("should throw an error if create method receives a non-string value", () => {
-    // @ts-expect-error testing invalid input
-    expect(() => new Email(123)).toThrow(ZodError);
+    expect(() => new Email(123)).toThrow(expectedError);
   });
 });
